@@ -1,15 +1,17 @@
 from sqlalchemy import Column, Integer, String, DateTime, Float, Boolean, Text, ForeignKey, Date, Time
-from sqlalchemy.ext.declarative import declarativebase
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
-Base = declarativebase()
+
+Base = declarative_base()
+
 
 class Patient(Base):
     """Patient information"""
-    tablename = "patients"
-    
-    id = Column(Integer, primarykey=True, index=True)
+    __tablename__ = "patients"
+
+    id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False, index=True)
     phone = Column(String, nullable=False, index=True)
     email = Column(String)
@@ -23,31 +25,33 @@ class Patient(Base):
     specialkey = Column(String, unique=True, index=True)  # For phone verification
     createdat = Column(DateTime, default=datetime.now)
     updatedat = Column(DateTime, default=datetime.now, onupdate=datetime.now)
-    
+
     # Relationships
-    appointments = relationship("Appointment", backpopulates="patient")
-    calls = relationship("Call", backpopulates="patient")
+    appointments = relationship("Appointment", back_populates="patient")
+    calls = relationship("Call", back_populates="patient")
+
 
 class Doctor(Base):
     """Doctor information"""
-    tablename = "doctors"
-    
-    id = Column(Integer, primarykey=True, index=True)
+    __tablename__ = "doctors"
+
+    id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     specialty = Column(String)
     phone = Column(String)
     email = Column(String)
     availabledays = Column(String)  # JSON string of available days
     createdat = Column(DateTime, default=datetime.now)
-    
+
     # Relationships
-    appointments = relationship("Appointment", backpopulates="doctor")
+    appointments = relationship("Appointment", back_populates="doctor")
+
 
 class Appointment(Base):
     """Appointment scheduling"""
-    tablename = "appointments"
-    
-    id = Column(Integer, primarykey=True, index=True)
+    __tablename__ = "appointments"
+
+    id = Column(Integer, primary_key=True, index=True)
     patientid = Column(Integer, ForeignKey("patients.id"), nullable=False)
     doctorid = Column(Integer, ForeignKey("doctors.id"), nullable=False)
     appointmentdate = Column(Date, nullable=False, index=True)
@@ -58,16 +62,17 @@ class Appointment(Base):
     notes = Column(Text)
     createdat = Column(DateTime, default=datetime.now)
     updatedat = Column(DateTime, default=datetime.now, onupdate=datetime.now)
-    
+
     # Relationships
-    patient = relationship("Patient", backpopulates="appointments")
-    doctor = relationship("Doctor", backpopulates="appointments")
+    patient = relationship("Patient", back_populates="appointments")
+    doctor = relationship("Doctor", back_populates="appointments")
+
 
 class Call(Base):
     """Call records"""
-    tablename = "calls"
-    
-    id = Column(Integer, primarykey=True, index=True)
+    __tablename__ = "calls"
+
+    id = Column(Integer, primary_key=True, index=True)
     patientid = Column(Integer, ForeignKey("patients.id"), nullable=True)
     callernumber = Column(String)
     callername = Column(String)
@@ -81,15 +86,16 @@ class Call(Base):
     emergencydetected = Column(Boolean, default=False)
     appointmentcreated = Column(Integer, ForeignKey("appointments.id"), nullable=True)
     createdat = Column(DateTime, default=datetime.now)
-    
+
     # Relationships
-    patient = relationship("Patient", backpopulates="calls")
+    patient = relationship("Patient", back_populates="calls")
+
 
 class MedicalKnowledge(Base):
     """Medical knowledge base from MIMIC-IV"""
-    tablename = "medicalknowledge"
-    
-    id = Column(Integer, primarykey=True, index=True)
+    __tablename__ = "medicalknowledge"
+
+    id = Column(Integer, primary_key=True, index=True)
     category = Column(String, index=True)  # diagnosis, procedure, medication, etc.
     term = Column(String, index=True)
     description = Column(Text)

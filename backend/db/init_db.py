@@ -235,5 +235,5 @@ def seeddatabase():
     finally:
         db.close()
 
-if name == "main":
-    seed_database()
+if __name__ == "__main__":
+    seeddatabase()

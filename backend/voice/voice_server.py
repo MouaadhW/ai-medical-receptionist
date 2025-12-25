@@ -3,9 +3,10 @@ from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(file)))
 
-from agent.medicalagent import MedicalReceptionistAgent
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+
+from agent.medical_agent import MedicalReceptionistAgent
 from db.database import SessionLocal
 from db.models import Call
 from datetime import datetime
@@ -13,14 +14,14 @@ import json
 import random
 import config
 
-app = FastAPI()
+app = FastAPI(title="Medical Receptionist Voice Server")
 
-app.addmiddleware(
+app.add_middleware(
     CORSMiddleware,
-    alloworigins=[""],
-    allowcredentials=True,
-    allowmethods=[""],
-    allowheaders=[""],
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 agent = MedicalReceptionistAgent()
@@ -251,7 +252,7 @@ html = """
                         }
                     } else {
                         interimTranscript += transcript;
-                        status.textContent = 🎤 Hearing: "${interimTranscript}";
+                        status.textContent = `🎤 Hearing: "${interimTranscript}"`;
                     }
                 }
             };
@@ -324,7 +325,6 @@ html = """
                 
                 console.log('🔊 Speaking:', text);
                 
-                // Check for emergency
                 const isEmergency = text.toLowerCase().includes('emergency') || 
                                    text.toLowerCase().includes('911') ||
                                    text.toLowerCase().includes('call 911');
@@ -345,7 +345,7 @@ html = """
                     }
                     
                     const utterance = new SpeechSynthesisUtterance(sentences[index].trim());
-                    utterance.rate = 1.2;  // 20% faster
+                    utterance.rate = 1.2;
                     utterance.pitch = 1.0;
                     utterance.volume = 1.0;
                     
@@ -516,7 +516,6 @@ async def get():
 async def websocketendpoint(websocket: WebSocket):
     await websocket.accept()
     
-    # Create call record
     db = SessionLocal()
     call = Call(
         callernumber="Web Call",
@@ -554,7 +553,6 @@ async def websocketendpoint(websocket: WebSocket):
                 
                 print(f"[Call {callid}] User: {usertext}")
                 
-                # Check for goodbye
                 goodbyephrases = ['goodbye', 'bye', 'thank you', 'thanks', "that's all", "nothing else"]
                 if any(phrase in usertext.lower() for phrase in goodbyephrases):
                     farewells = [
@@ -574,7 +572,6 @@ async def websocketendpoint(websocket: WebSocket):
                     updatecallrecord(callid, conversationhistory, 'completed')
                     break
                 
-                # Get AI response
                 try:
                     response = await agent.processinput(
                         usertext,
@@ -627,24 +624,21 @@ def updatecallrecord(callid: str, conversationhistory: list, status: str):
             call.duration = int((call.endtime - call.starttime).totalseconds())
             call.status = status
             
-            # Create transcript
             transcript = "\n".join([
                 f"{msg['role'].upper()}: {msg['content']}"
                 for msg in conversationhistory
             ])
             call.transcript = transcript
             
-            # Detect intent
             if len(conversationhistory) > 2:
                 usermessages = [msg['content'] for msg in conversationhistory if msg['role'] == 'user']
-                from agent.intentclassifier import MedicalIntentClassifier
+                from agent.intent_classifier import MedicalIntentClassifier
                 classifier = MedicalIntentClassifier()
                 call.intent = classifier.classify(" ".join(usermessages))
             
-            # Check for emergency
-            from agent.emergencydetector import EmergencyDetector
+            from agent.emergency_detector import EmergencyDetector
             detector = EmergencyDetector()
-            isemergency, severity,  = detector.detectemergency(transcript)
+            isemergency, severity, _ = detector.detectemergency(transcript)
             call.emergencydetected = isemergency
             
             db.commit()
@@ -654,14 +648,14 @@ def updatecallrecord(callid: str, conversationhistory: list, status: str):
     except Exception as e:
         print(f"Error updating call: {e}")
 
-if name == "main":
+if __name__ == "__main__":
     import uvicorn
-    
-    print("\n" + "="70)
+
+    print("\n" + "="*70)
     print("🏥 AI MEDICAL RECEPTIONIST - VOICE SYSTEM")
-    print("="70)
+    print("="*70)
     print(f"\n📱 Access: http://localhost:{config.config.VOICEPORT}")
-    print(f"📱 iPhone: http://192.168.1.19:{config.config.VOICEPORT}")
+    print(f"📱 Local: http://127.0.0.1:{config.config.VOICEPORT}")
     print("\n✨ Features:")
     print("   ✅ Emergency detection")
     print("   ✅ Appointment booking")
@@ -669,5 +663,5 @@ if name == "main":
     print("   ✅ Medical Q&A")
     print("   ✅ HIPAA compliant")
     print("\n" + "="*70 + "\n")
-    
-    uvicorn.run(app, host=config.config.APIHOST, port=config.config.VOICE_PORT)
+
+    uvicorn.run(app, host=config.config.APIHOST, port=config.config.VOICEPORT)

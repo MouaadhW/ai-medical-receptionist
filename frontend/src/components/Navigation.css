@@ -1,0 +1,19 @@
+/* Add to existing App.css or create new styles */
+.chat-link {
+    background-color: #f0f2f5;
+    border-radius: 20px;
+    padding: 5px 15px !important;
+    margin-left: 10px;
+}
+
+.chat-link:hover {
+    background-color: #e4e6eb;
+}
+
+.phone-link {
+    background-color: #e8f5e9;
+    border-radius: 20px;
+    padding: 5px 15px !important;
+    margin-left: 10px;
+    color: #2e7d32 !important;
+}

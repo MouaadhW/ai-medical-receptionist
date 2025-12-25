@@ -1,9 +1,9 @@
 import json
 import random
 from loguru import logger
-from agent.intentclassifier import MedicalIntentClassifier
-from agent.emergencydetector import EmergencyDetector
-from agent.knowledgebase import MedicalKnowledgeBase
+from agent.intent_classifier import MedicalIntentClassifier
+from agent.emergency_detector import EmergencyDetector
+from agent.knowledge_base import MedicalKnowledgeBase
 from db.database import SessionLocal
 from db.models import Patient, Doctor, Appointment, Call
 from datetime import datetime, date, time, timedelta
@@ -18,13 +18,13 @@ except ImportError:
 
 class MedicalReceptionistAgent:
     """AI Medical Receptionist Agent"""
-    
-    def init(self):
+
+    def __init__(self):
         self.intentclassifier = MedicalIntentClassifier()
         self.emergencydetector = EmergencyDetector()
         self.knowledgebase = MedicalKnowledgeBase()
         self.conversationstate = {}
-        
+
         if OLLAMAAVAILABLE and config.config.LLMPROVIDER == "ollama":
             self.usellm = True
             logger.info(f"Medical Agent initialized with LLM: {config.config.LLMMODEL}")
@@ -385,7 +385,7 @@ class MedicalReceptionistAgent:
                 Appointment.patientid == patientid,
                 Appointment.appointmentdate >= today,
                 Appointment.status == "scheduled"
-            ).orderby(Appointment.appointmentdate, Appointment.appointmenttime).all()
+            ).order_by(Appointment.appointmentdate, Appointment.appointmenttime).all()
             
             result = []
             for appt in appointments:
@@ -495,7 +495,7 @@ class MedicalReceptionistAgent:
         """Cancel appointment"""
         try:
             db = SessionLocal()
-            appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
+            appointment = db.query(Appointment).filter(Appointment.id == appointmentid).first()
             if appointment:
                 appointment.status = "cancelled"
                 db.commit()

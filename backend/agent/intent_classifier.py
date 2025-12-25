@@ -3,8 +3,8 @@ from typing import Dict, List
 
 class MedicalIntentClassifier:
     """Classify patient intents for medical receptionist"""
-    
-    def init(self):
+
+    def __init__(self):
         self.intentkeywords = {
             "emergency": [
                 "emergency", "urgent", "chest pain", "heart attack", "stroke",
@@ -17,7 +17,8 @@ class MedicalIntentClassifier:
             ],
             "appointmentinquiry": [
                 "when is my appointment", "next appointment", "upcoming appointment",
-                "check appointment", "appointment time", "what time", "when do I"
+                "check appointment", "appointment time", "what time", "when do i",
+                "my appointment", "appointment status"
             ],
             "appointmentcancel": [
                 "cancel", "reschedule", "change appointment", "move appointment",
@@ -61,6 +62,12 @@ class MedicalIntentClassifier:
             if keyword in textlower:
                 logger.warning(f"EMERGENCY DETECTED: {text}")
                 return "emergency"
+        
+        # Check for appointment inquiry - higher weight for "when" question
+        inquiry_keywords = self.intentkeywords["appointmentinquiry"]
+        if any(keyword in textlower for keyword in ["when is", "when do i", "check appointment", "next appointment"]):
+            logger.info(f"Intent detected: appointmentinquiry (score: 3)")
+            return "appointmentinquiry"
         
         # Check other intents
         intentscores = {}

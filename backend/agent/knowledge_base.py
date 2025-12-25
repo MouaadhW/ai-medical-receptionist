@@ -5,8 +5,7 @@ import config
 
 class MedicalKnowledgeBase:
     """Medical knowledge base for answering patient questions"""
-    
-    def init(self):
+    def __init__(self):
         self.clinicinfo = {
             "name": config.config.CLINICNAME,
             "hours": f"{config.config.CLINICHOURSSTART} - {config.config.CLINICHOURSEND}",
@@ -66,7 +65,7 @@ class MedicalKnowledgeBase:
         return (
             f"You are a medical receptionist at {self.clinicinfo['name']}. "
             f"Clinic hours: {self.clinicinfo['hours']}, {self.clinicinfo['days']}. "
-            f"Location: {self.clinic_info['address']}. "
+            f"Location: {self.clinicinfo['address']}. "
             "You help patients schedule appointments, answer questions, and provide basic medical information. "
             "Always be empathetic, professional, and prioritize patient safety. "
             "For medical emergencies, immediately advise calling 911."

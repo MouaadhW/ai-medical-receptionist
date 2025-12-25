@@ -4,8 +4,7 @@ import config
 
 class EmergencyDetector:
     """Detect medical emergencies and provide triage"""
-    
-    def init(self):
+    def __init__(self):
         self.emergencykeywords = config.config.EMERGENCYKEYWORDS
         
         self.severitylevels = {
@@ -14,7 +13,7 @@ class EmergencyDetector:
                 "severe bleeding", "unconscious", "not breathing", "choking"
             ],
             "urgent": [
-                "severe pain", "high fever", "vomiting blood", "seizure",
+                "severe pain", "high fever", "fever 10", "fever 104", "vomiting blood", "seizure",
                 "allergic reaction", "broken bone", "deep cut"
             ],
             "moderate": [
@@ -43,6 +42,19 @@ class EmergencyDetector:
                     "critical",
                     "This is a medical emergency. Please call 911 immediately or go to the nearest emergency room. Do not wait."
                 )
+        
+        # Check for high fever (above 103°F)
+        import re
+        fever_matches = re.findall(r'fever\s+(?:of\s+)?(\d+)', textlower)
+        if fever_matches:
+            for fever_temp in fever_matches:
+                if int(fever_temp) >= 103:
+                    logger.warning(f"URGENT SITUATION DETECTED: high fever {fever_temp}")
+                    return (
+                        True,
+                        "urgent",
+                        "This requires immediate medical attention. Please go to the emergency room or urgent care center right away."
+                    )
         
         # Check urgent situations
         for keyword in self.severitylevels["urgent"]:

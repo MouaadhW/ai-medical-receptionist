@@ -5,47 +5,49 @@ from db.database import initdatabase
 from loguru import logger
 import config
 
+
 app = FastAPI(
     title=config.config.APPNAME,
     version=config.config.VERSION,
-    description="AI Medical Receptionist API"
+    description="AI Medical Receptionist API",
 )
 
-CORS
-app.addmiddleware(
+# CORS
+app.add_middleware(
     CORSMiddleware,
-    alloworigins=[""],
-    allowcredentials=True,
-    allowmethods=[""],
-    allowheaders=["*"],
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-Include routes
-app.includerouter(router, prefix="/api")
+# Include routes
+app.include_router(router, prefix="/api")
 
-@app.onevent("startup")
-async def startupevent():
+
+@app.on_event("startup")
+async def startup_event():
     """Initialize on startup"""
     logger.info(f"Starting {config.config.APPNAME} v{config.config.VERSION}")
     initdatabase()
     logger.info("Database initialized")
+
 
 @app.get("/")
 async def root():
     return {
         "name": config.config.APPNAME,
         "version": config.config.VERSION,
-        "status": "healthy"
+        "status": "healthy",
     }
+
 
 @app.get("/health")
 async def healthcheck():
     return {"status": "healthy", "version": config.config.VERSION}
 
-if name == "main":
+
+if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(
-        app,
-        host=config.config.APIHOST,
-        port=config.config.APIPORT
-    )
+
+    uvicorn.run(app, host=config.config.APIHOST, port=config.config.APIPORT)
