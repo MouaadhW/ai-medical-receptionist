@@ -51,7 +51,7 @@ All medical information is sourced from trusted, official medical organizations:
 
 #### 1. **Clone the repository:**
 ```bash
-git clone https://github.com/yourusername/ai-medical-receptionist.git
+git clone https://github.com/MouaadhW/ai-medical-receptionist
 cd ai-medical-receptionist
 ```
 
@@ -406,7 +406,7 @@ MIT License - see LICENSE file
 ## 📞 Support
 
 For issues and questions:
-- **GitHub Issues:** [Project Issues](https://github.com/yourusername/ai-medical-receptionist/issues)
+- **GitHub Issues:** [Project Issues](https://github.com/MouaadhW/ai-medical-receptionist/issues)
 - **Documentation:** See `/docs` folder
 
 ---
