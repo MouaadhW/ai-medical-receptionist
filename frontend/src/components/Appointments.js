@@ -13,7 +13,7 @@ function Appointments() {
 
     const fetchAppointments = async () => {
         try {
-            const response = await axios.get('http://localhost:8000/api/appointments/upcoming');
+            const response = await axios.get('/api/appointments/upcoming');
             setAppointments(response.data);
             setLoading(false);
         } catch (error) {

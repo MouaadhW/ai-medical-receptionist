@@ -3,7 +3,7 @@ import axios from 'axios';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import './Dashboard.css';
 
-const APIURL = process.env.REACTAPPAPIURL || 'http://localhost:8000/api';
+const APIURL = process.env.REACTAPPAPIURL || '/api';
 
 const COLORS = ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#00c9ff', '#92fe9d'];
 

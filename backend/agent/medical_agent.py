@@ -34,13 +34,17 @@ class MedicalReceptionistAgent:
     
     def getgreeting(self) -> str:
         """Get varied, professional greeting"""
-        greetings = [
-            f"Good day! Thank you for calling {config.config.CLINICNAME}. This is your AI receptionist. How may I help you?",
-            f"Hello! Welcome to {config.config.CLINICNAME}. I'm here to assist you. What can I do for you today?",
-            f"Thank you for calling {config.config.CLINICNAME}. How can I help you today?",
-            f"Hi there! You've reached {config.config.CLINICNAME}. How may I assist you?",
-        ]
-        return random.choice(greetings)
+        return "Hello! Welcome to AI Medical Receptionist. I am an AI assistant here to help you. How may I assist you today?"
+        
+    def _create_json_response(self, spoken_text: str, metadata: dict = None) -> str:
+        """Create standardized JSON response"""
+        if metadata is None:
+            metadata = {}
+        return json.dumps({
+            "spoken_response": spoken_text,
+            "metadata": metadata
+        })
+
     
     async def processinput(self, userinput: str, conversationhistory: list, callid: str = None) -> str:
         """Process patient input with medical intelligence"""
@@ -53,7 +57,10 @@ class MedicalReceptionistAgent:
             if isemergency:
                 logger.critical(f"[Call {callid}] EMERGENCY: {severity}")
                 protocol = self.emergencydetector.getemergencyprotocol(severity)
-                return f"{emergencyadvice}\n\n{protocol}"
+                return self._create_json_response(
+                    f"{emergencyadvice}\n\n{protocol}",
+                    {"is_emergency": True, "severity": severity}
+                )
             
             # Classify intent
             intent = self.intentclassifier.classify(userinput)
@@ -123,9 +130,15 @@ class MedicalReceptionistAgent:
             state["retrycount"] = state.get("retrycount", 0) + 1
             
             if state["retrycount"] < 3:
-                return "I apologize, could you please repeat that?"
+                return self._create_json_response(
+                    "I apologize, could you please repeat that?",
+                    {"error": str(e), "retry": True}
+                )
             else:
-                return "I'm having difficulty understanding. Let me transfer you to our staff. Please hold."
+                return self._create_json_response(
+                    "I'm having difficulty understanding. Let me transfer you to our staff. Please hold.",
+                    {"error": str(e), "transfer": True}
+                )
     
     async def handleappointmentbooking(self, userinput: str, callid: str, conversationhistory: list) -> str:
         """Handle appointment booking"""
@@ -139,12 +152,21 @@ class MedicalReceptionistAgent:
                     state["patientname"] = patientname
                     state["awaitingname"] = False
                     state["awaitingkey"] = True
-                    return f"Thank you, {patientname}. For verification, could you please provide your special key?"
+                    return self._create_json_response(
+                        f"Thank you, {patientname}. For verification, could you please provide your special key?",
+                        {"intent": "booking", "step": "verification"}
+                    )
                 else:
-                    return "I didn't catch your name. Could you please say your full name?"
+                    return self._create_json_response(
+                        "I didn't catch your name. Could you please say your full name?",
+                        {"intent": "booking", "step": "name_retry"}
+                    )
             else:
                 state["awaitingname"] = True
-                return "I'd be happy to help you schedule an appointment. May I have your full name, please?"
+                return self._create_json_response(
+                    "I'd be happy to help you schedule an appointment. May I have your full name, please?",
+                    {"intent": "booking", "step": "ask_name"}
+                )
         
         # Step 2: Verify patient
         if not state.get("verified"):
@@ -157,14 +179,27 @@ class MedicalReceptionistAgent:
                         state["verified"] = True
                         state["awaitingkey"] = False
                         state["awaitingreason"] = True
-                        return f"Thank you, {patient.name}. I've verified your identity. What is the reason for your visit?"
+                        state["awaitingreason"] = True
+                        return self._create_json_response(
+                            f"Thank you, {patient.name}. I've verified your identity. What is the reason for your visit?",
+                            {"intent": "booking", "step": "ask_reason", "verified": True}
+                        )
                     else:
-                        return "I couldn't verify that information. Could you please provide your special key again?"
+                        return self._create_json_response(
+                            "I couldn't verify that information. Could you please provide your special key again?",
+                            {"intent": "booking", "step": "verify_fail"}
+                        )
                 else:
-                    return "I need your special key for verification. What is it?"
+                    return self._create_json_response(
+                        "I need your special key for verification. What is it?",
+                        {"intent": "booking", "step": "ask_key"}
+                    )
             else:
                 state["awaitingkey"] = True
-                return "For security, I need to verify your identity. Could you provide your special key?"
+                return self._create_json_response(
+                    "For security, I need to verify your identity. Could you provide your special key?",
+                    {"intent": "booking", "step": "ask_key_init"}
+                )
         
         # Step 3: Get reason for visit
         if not state.get("appointmentreason"):
@@ -176,12 +211,21 @@ class MedicalReceptionistAgent:
                 availableslots = self.getavailableslots()
                 if availableslots:
                     slotstext = "\n".join([f"• {slot['date']} at {slot['time']} with {slot['doctor']}" for slot in availableslots[:3]])
-                    return f"I have the following appointments available:\n{slotstext}\n\nWhich time works best for you?"
+                    return self._create_json_response(
+                        f"I have the following appointments available:\n{slotstext}\n\nWhich time works best for you?",
+                        {"intent": "booking", "step": "offer_slots", "slots": availableslots[:3]}
+                    )
                 else:
-                    return "I apologize, but we don't have any available appointments in the next two weeks. Would you like me to add you to our waiting list?"
+                    return self._create_json_response(
+                        "I apologize, but we don't have any available appointments in the next two weeks. Would you like me to add you to our waiting list?",
+                        {"intent": "booking", "step": "no_slots"}
+                    )
             else:
                 state["awaitingreason"] = True
-                return "What is the reason for your visit?"
+                return self._create_json_response(
+                    "What is the reason for your visit?",
+                    {"intent": "booking", "step": "ask_reason_retry"}
+                )
         
         # Step 4: Book appointment
         appointment = self.createappointment(
@@ -191,9 +235,15 @@ class MedicalReceptionistAgent:
         )
         
         if appointment:
-            return f"Perfect! I've scheduled your appointment for {appointment['date']} at {appointment['time']} with {appointment['doctor']}. You'll receive a confirmation. Is there anything else I can help you with?"
+            return self._create_json_response(
+                f"Perfect! I've scheduled your appointment for {appointment['date']} at {appointment['time']} with {appointment['doctor']}. You'll receive a confirmation. Is there anything else I can help you with?",
+                {"intent": "booking", "step": "confirmed", "appointment": appointment}
+            )
         else:
-            return "I'm having trouble booking that appointment. Let me transfer you to our scheduling team."
+            return self._create_json_response(
+                "I'm having trouble booking that appointment. Let me transfer you to our scheduling team.",
+                {"intent": "booking", "step": "error", "transfer": True}
+            )
     
     async def handleappointmentinquiry(self, userinput: str, callid: str, conversationhistory: list) -> str:
         """Handle appointment inquiry"""
@@ -298,16 +348,27 @@ class MedicalReceptionistAgent:
         return await self.getsmartresponse(userinput, conversationhistory, callid, None, "generalinquiry")
     
     async def getsmartresponse(self, userinput: str, conversationhistory: list, callid: str, patient: Patient = None, intent: str = None) -> str:
-        """Get intelligent response using LLM"""
+        """Get intelligent response using LLM with JSON Mode"""
         if not self.usellm:
-            return "I'm here to help! Could you tell me more about what you need?"
+            return json.dumps({
+                "spoken_response": "I'm here to help! Could you tell me more about what you need?",
+                "metadata": {"intent": "fallback", "step": "0"}
+            })
         
         try:
             contextparts = [
                 f"You are a professional medical receptionist at {config.config.CLINICNAME}.",
-                "You are empathetic, efficient, and prioritize patient safety.",
-                "Keep responses concise (1-2 sentences) for phone conversations.",
-                "Always maintain HIPAA compliance - never share patient information without verification.",
+                "You MUST respond in strictly valid JSON format.",
+                "Structure your JSON response as follows:",
+                "{"
+                '  "spoken_response": "The text you want the TTS to speak to the patient (concise, 1-2 sentences).",'
+                '  "analysis": "Brief internal thought about the patient\'s request.",'
+                '  "current_step": "The current step in the triage process (1-8) or 0 if general chat.",'
+                '  "is_emergency": false,',
+                '  "missing_info": ["severity", "location"] (list of info you still need),'
+                '  "intent": "appointment|medical|emergency|general"'
+                "}",
+                "Always maintain HIPAA compliance.",
                 self.knowledgebase.getcontext()
             ]
             
@@ -324,17 +385,31 @@ class MedicalReceptionistAgent:
             response = ollama.chat(
                 model=config.config.LLMMODEL,
                 messages=messages,
+                format='json',
                 options={
-                    "temperature": config.config.LLMTEMPERATURE,
+                    "temperature": 0.2, # Lower temperature for structure
                     "numpredict": config.config.LLMMAXTOKENS
                 }
             )
             
-            return response['message']['content'].strip()
+            json_str = response['message']['content'].strip()
+            # Ensure it's valid JSON
+            try:
+                parsed = json.loads(json_str)
+                return json.dumps(parsed)
+            except json.JSONDecodeError:
+                logger.error(f"LLM failed JSON format: {json_str}")
+                return json.dumps({
+                    "spoken_response": "I apologize, I missed that. Could you repeat?",
+                    "metadata": {"error": "json_parse_error"}
+                })
             
         except Exception as e:
             logger.error(f"LLM error: {e}")
-            return "I apologize, I'm having trouble right now. How else can I help you?"
+            return json.dumps({
+                "spoken_response": "I apologize, I'm having trouble right now. How else can I help you?",
+                "metadata": {"error": str(e)}
+            })
     
     def extractpatientname(self, text: str, state: dict) -> str:
         """Extract patient name"""

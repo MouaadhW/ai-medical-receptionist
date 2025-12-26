@@ -13,7 +13,7 @@ function Patients() {
 
   const fetchPatients = async () => {
     try {
-      const response = await axios.get('http://localhost:8000/api/patients');
+      const response = await axios.get('/api/patients');
       setPatients(response.data);
       setLoading(false);
     } catch (error) {

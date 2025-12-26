@@ -2,9 +2,7 @@ version: '3.8'
 
 services:
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: medical_backend
     container_name: medical_backend
     ports:
       - "8000:8000"
@@ -14,13 +12,12 @@ services:
     environment:
       - DATABASE_URL=sqlite:///./medicalreceptionist.db
       - LLM_MODEL=llama3.1:8b
+      - OLLAMA_HOST=http://ollama:11434
     restart: unless-stopped
     command: python main.py
 
   voice:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: medical_backend
     container_name: medical_voice
     ports:
       - "8003:8003"
@@ -29,10 +26,20 @@ services:
     environment:
       - DATABASE_URL=sqlite:///./medicalreceptionist.db
       - LLM_MODEL=llama3.1:8b
+      - OLLAMA_HOST=http://ollama:11434
     depends_on:
       - backend
     restart: unless-stopped
     command: python voice/voice_server.py
+
+  frontend:
+    image: medical_frontend
+    container_name: medical_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
 
   ollama:
     image: ollama/ollama:latest
@@ -45,6 +52,7 @@ services:
 
 volumes:
   ollama_data:
+
 
 networks:
   default:

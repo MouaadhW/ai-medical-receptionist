@@ -12,7 +12,7 @@ function Calls() {
 
     const fetchCalls = async () => {
         try {
-            const response = await axios.get('http://localhost:8000/api/calls');
+            const response = await axios.get('/api/calls');
             setCalls(response.data);
             setLoading(false);
         } catch (error) {
@@ -23,7 +23,7 @@ function Calls() {
 
     const viewCallDetails = async (callId) => {
         try {
-            const response = await axios.get(`http://localhost:8000/api/calls/${callId}`);
+            const response = await axios.get(`/api/calls/${callId}`);
             setSelectedCall(response.data);
         } catch (error) {
             console.error('Error fetching call details:', error);

@@ -41,91 +41,44 @@ All medical information is sourced from trusted, official medical organizations:
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start (Docker - Recommended)
 
 ### Prerequisites
-- **Python 3.11+**
-- **Node.js 16+** (for frontend)
-- **Ollama** (for LLM) - [Download here](https://ollama.com/download)
+- **Docker Desktop** installed and running
+- **Ollama** installed (optional, internal Docker service provided)
 
 ### Installation
 
 #### 1. **Clone the repository:**
-
 ```bash
 git clone https://github.com/yourusername/ai-medical-receptionist.git
 cd ai-medical-receptionist
 ```
 
-#### 2. **Install Ollama and pull model:**
-
-**Windows:**
-- Download from [ollama.com/download/windows](https://ollama.com/download/windows)
-- Install the application
-- Open PowerShell and run:
-```powershell
+#### 2. **Pull Required LLM Model:**
+The system uses Ollama. You generally don't need to do anything as the Docker setup handles it, but ensuring the model is cached helps.
+```bash
+# If you have Ollama installed locally:
 ollama pull llama3.1:8b
+# Otherwise, the container will pull it on first run (may take time).
 ```
 
-**Linux/Mac:**
+#### 3. **Start the System:**
+Everything is containerized. Just run:
 ```bash
-curl -fsSL https://ollama.com/install.sh | sh
-ollama pull llama3.1:8b
+docker-compose up --build
 ```
+*Note: The first run might take a few minutes to download the LLM and TTS models.*
 
-#### 3. **Set up environment:**
+#### 4. **Access the System:**
+- **Frontend Dashboard:** [http://localhost:3000](http://localhost:3000)
+- **Voice Interface:** [http://localhost:3000/phone](http://localhost:3000/phone)
+- **Backend API:** [http://localhost:8000](http://localhost:8000)
+- **API Docs:** [http://localhost:8000/docs](http://localhost:8000/docs)
 
-```bash
-cp .env.example .env
-# Edit .env with your settings if needed
-```
-
-#### 4. **Install Backend Dependencies:**
-
-```bash
-cd backend
-pip install -r requirements.txt
-```
-
-#### 5. **Initialize Database:**
-
-```bash
-python -m db.init_db
-```
-
-#### 6. **Install Frontend Dependencies:**
-
-```bash
-cd ../frontend
-npm install
-```
-
-#### 7. **Start All Services:**
-
-**Terminal 1 - Backend API:**
-```bash
-cd backend
-python main.py
-```
-
-**Terminal 2 - Voice Server:**
-```bash
-cd backend
-python voice/voice_server.py
-```
-
-**Terminal 3 - Frontend:**
-```bash
-cd frontend
-npm start
-```
-
-#### 8. **Access the System:**
-
-- **Frontend Dashboard:** http://localhost:3000
-- **Voice Interface:** http://localhost:3000/phone
-- **API:** http://localhost:8000
-- **API Docs:** http://localhost:8000/docs
+**Troubleshooting:**
+- If you see "Connection Error", wait 30 seconds and refresh. The backend takes a moment to initialize the database.
+- Ensure your microphone is allowed in the browser.
 
 ---
 

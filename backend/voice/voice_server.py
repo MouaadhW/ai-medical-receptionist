@@ -1,20 +1,46 @@
+
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 import sys
 import os
+import asyncio
+import json
+import logging
+import numpy as np
+import webrtcvad
+import collections
+import time
+from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
+from faster_whisper import WhisperModel
+import subprocess
+import aiohttp
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+# --- Configuration ---
+SAMPLE_RATE = 16000
+FRAME_DURATION_MS = 30
+FRAME_SIZE = int(SAMPLE_RATE * FRAME_DURATION_MS / 1000)  # 480 samples for 16kHz
+VAD_MODE = 1  # Less Aggressive (0-3) - 3 rejects too much background noise/poor mics - 3 rejects too much background noise/poor mics
 
+# Paths
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+MIMIC_DATA_PATH = os.path.join(BASE_DIR, "mimicdata")
+MODELS_DIR = os.path.join(BASE_DIR, "models")
+os.makedirs(MODELS_DIR, exist_ok=True)
+
+# Logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("VoiceServer")
+
+# Add backend to path
+sys.path.insert(0, BASE_DIR)
 from agent.medical_agent import MedicalReceptionistAgent
 from db.database import SessionLocal
 from db.models import Call
-from datetime import datetime
-import json
-import random
 import config
 
-app = FastAPI(title="Medical Receptionist Voice Server")
+app = FastAPI(title="Medical Receptionist Streaming Server")
 
 app.add_middleware(
     CORSMiddleware,
@@ -24,644 +50,307 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# --- Global Resources ---
 agent = MedicalReceptionistAgent()
-activecalls = {}
+vad = webrtcvad.Vad(VAD_MODE)
+executor = ThreadPoolExecutor(max_workers=3)  # For STT/TTS blocking calls
 
-html = """
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Medical Receptionist - Voice Call</title>
-    
-    <style>
-         { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-        .container {
-            background: white;
-            padding: 30px;
-            border-radius: 20px;
-            text-align: center;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            max-width: 600px;
-            width: 100%;
-        }
-        h1 {
-            color: #667eea;
-            margin-bottom: 10px;
-            font-size: 28px;
-        }
-        .subtitle {
-            color: #666;
-            margin-bottom: 20px;
-            font-size: 14px;
-        }
-        .status {
-            padding: 20px;
-            margin: 20px 0;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-        .status.ready { background: #e8f5e9; color: #2e7d32; }
-        .status.listening { 
-            background: #fff3e0; 
-            color: #e65100;
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-        .status.speaking { background: #e3f2fd; color: #1565c0; }
-        .status.error { background: #ffebee; color: #c62828; }
-        .status.emergency { 
-            background: #ff1744; 
-            color: white;
-            animation: blink 1s infinite;
-        }
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        
-        button {
-            padding: 18px 50px;
-            font-size: 18px;
-            font-weight: 600;
-            border: none;
-            border-radius: 30px;
-            cursor: pointer;
-            margin: 10px;
-            transition: all 0.3s;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        }
-        button:active { transform: scale(0.95); }
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        
-        #startBtn {
-            background: linear-gradient(135deg, #4caf50, #45a049);
-            color: white;
-        }
-        #startBtn:hover:not(:disabled) { 
-            box-shadow: 0 6px 20px rgba(76,175,80,0.4); 
-        }
-        
-        #stopBtn {
-            background: linear-gradient(135deg, #f44336, #e53935);
-            color: white;
-            display: none;
-        }
-        #stopBtn:hover { box-shadow: 0 6px 20px rgba(244,67,54,0.4); }
-        
-        #transcript {
-            margin-top: 30px;
-            padding: 20px;
-            background: #f5f5f5;
-            border-radius: 12px;
-            min-height: 250px;
-            max-height: 400px;
-            overflow-y: auto;
-            text-align: left;
-        }
-        .message {
-            margin: 12px 0;
-            padding: 12px;
-            border-radius: 8px;
-            animation: slideIn 0.3s ease;
-        }
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .user {
-            background: #e3f2fd;
-            border-left: 4px solid #2196f3;
-        }
-        .agent {
-            background: #f1f8e9;
-            border-left: 4px solid #4caf50;
-        }
-        .emergency {
-            background: #ffebee;
-            border-left: 4px solid #f44336;
-            font-weight: bold;
-        }
-        .message strong {
-            display: block;
-            margin-bottom: 5px;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: #666;
-        }
-        .tip {
-            background: #fff9c4;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 20px 0;
-            font-size: 13px;
-            text-align: left;
-        }
-        .tip strong {
-            display: block;
-            margin-bottom: 8px;
-            color: #f57c00;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>🏥 Medical Receptionist</h1>
-        <p class="subtitle">AI-Powered Healthcare Assistant</p>
-        
-        <div class="tip">
-            <strong>💡 How to use:</strong>
-            • Click "Start Call" to begin<br>
-            • Speak clearly after "Listening..." appears<br>
-            • For emergencies, say "emergency" or "chest pain"<br>
-            • Say "goodbye" to end the call
-        </div>
-        
-        <div id="status" class="status ready">Ready to start</div>
-        <button id="startBtn">📞 Start Call</button>
-        <button id="stopBtn">🔴 End Call</button>
-        <div id="transcript"></div>
-    </div>
-    
-    <script>
-        const startBtn = document.getElementById('startBtn');
-        const stopBtn = document.getElementById('stopBtn');
-        const status = document.getElementById('status');
-        const transcript = document.getElementById('transcript');
-        
-        let recognition;
-        let synthesis = window.speechSynthesis;
-        let ws;
-        let isListening = false;
-        let isSpeaking = false;
-        
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-            status.textContent = '❌ Speech not supported. Use Safari on iOS 14.5+';
-            status.className = 'status error';
-            startBtn.disabled = true;
-        }
-        
-        function initRecognition() {
-            recognition = new SpeechRecognition();
-            recognition.continuous = true;
-            recognition.interimResults = true;
-            recognition.lang = 'en-US';
-            recognition.maxAlternatives = 3;
-            
-            let finalTranscript = '';
-            let interimTranscript = '';
-            
-            recognition.onstart = function() {
-                console.log('🎤 Listening started');
-                status.textContent = '🎤 Listening... (speak now)';
-                status.className = 'status listening';
-            };
-            
-            recognition.onresult = function(event) {
-                interimTranscript = '';
-                
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    const result = event.results[i];
-                    const transcript = result[0].transcript;
-                    
-                    if (result.isFinal) {
-                        finalTranscript += transcript + ' ';
-                        console.log('✅ Final:', finalTranscript);
-                        
-                        if (finalTranscript.trim().length > 0) {
-                            processSpeech(finalTranscript.trim());
-                            finalTranscript = '';
-                        }
-                    } else {
-                        interimTranscript += transcript;
-                        status.textContent = `🎤 Hearing: "${interimTranscript}"`;
-                    }
-                }
-            };
-            
-            recognition.onspeechend = function() {
-                console.log('🔇 Speech ended');
-                setTimeout(() => {
-                    if (finalTranscript.trim().length > 0) {
-                        processSpeech(finalTranscript.trim());
-                        finalTranscript = '';
-                    }
-                }, 500);
-            };
-            
-            recognition.onend = function() {
-                console.log('⏹️ Recognition ended');
-                if (isListening && !isSpeaking) {
-                    setTimeout(() => {
-                        if (isListening) {
-                            try {
-                                recognition.start();
-                            } catch (e) {
-                                console.error('Restart error:', e);
-                            }
-                        }
-                    }, 100);
-                }
-            };
-            
-            recognition.onerror = function(event) {
-                console.error('❌ Error:', event.error);
-                
-                if (event.error === 'not-allowed') {
-                    status.textContent = '❌ Microphone blocked';
-                    status.className = 'status error';
-                    alert('Enable microphone:\\n1. Tap "aA" in address bar\\n2. Website Settings\\n3. Enable Microphone');
-                    stopBtn.click();
-                } else if (event.error === 'no-speech') {
-                    console.log('⚠️ No speech, continuing...');
-                }
-            };
-        }
-        
-        function processSpeech(text) {
-            console.log('💬 Processing:', text);
-            
-            if (text.length < 2) return;
-            
-            addMessage('user', text);
-            
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                isListening = false;
-                if (recognition) recognition.stop();
-                
-                ws.send(JSON.stringify({
-                    type: 'speech',
-                    text: text,
-                    confidence: 1.0
-                }));
-                
-                status.textContent = '🤖 AI thinking...';
-                status.className = 'status speaking';
-            }
-        }
-        
-        async function speak(text) {
-            return new Promise((resolve) => {
-                isSpeaking = true;
-                synthesis.cancel();
-                
-                console.log('🔊 Speaking:', text);
-                
-                const isEmergency = text.toLowerCase().includes('emergency') || 
-                                   text.toLowerCase().includes('911') ||
-                                   text.toLowerCase().includes('call 911');
-                
-                if (isEmergency) {
-                    status.textContent = '🚨 EMERGENCY DETECTED';
-                    status.className = 'status emergency';
-                }
-                
-                const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
-                let index = 0;
-                
-                function speakNext() {
-                    if (index >= sentences.length) {
-                        isSpeaking = false;
-                        resolve();
-                        return;
-                    }
-                    
-                    const utterance = new SpeechSynthesisUtterance(sentences[index].trim());
-                    utterance.rate = 1.2;
-                    utterance.pitch = 1.0;
-                    utterance.volume = 1.0;
-                    
-                    const voices = synthesis.getVoices();
-                    const preferredVoice = voices.find(v => 
-                        v.lang.startsWith('en') && 
-                        (v.name.includes('Samantha') || 
-                         v.name.includes('Karen') ||
-                         v.name.includes('Female') ||
-                         v.name.includes('Aria'))
-                    );
-                    if (preferredVoice) {
-                        utterance.voice = preferredVoice;
-                    }
-                    
-                    utterance.onend = () => {
-                        index++;
-                        speakNext();
-                    };
-                    
-                    utterance.onerror = () => {
-                        index++;
-                        speakNext();
-                    };
-                    
-                    synthesis.speak(utterance);
-                }
-                
-                speakNext();
-            });
-        }
-        
-        function addMessage(type, text) {
-            const msg = document.createElement('div');
-            const isEmergency = text.toLowerCase().includes('emergency') || 
-                               text.toLowerCase().includes('911');
-            msg.className = 'message ' + (isEmergency ? 'emergency' : type);
-            const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            msg.innerHTML = '<strong>' + (type === 'user' ? 'You' : 'AI Receptionist') + ' ' + time + '</strong>' + text;
-            transcript.appendChild(msg);
-            transcript.scrollTop = transcript.scrollHeight;
-        }
-        
-        startBtn.onclick = async function() {
-            console.log('🚀 Starting call...');
-            
-            try {
-                await navigator.mediaDevices.getUserMedia({ 
-                    audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        autoGainControl: true
-                    } 
-                });
-                console.log('✅ Microphone granted');
-            } catch (err) {
-                console.error('❌ Microphone error:', err);
-                status.textContent = '❌ Microphone denied';
-                status.className = 'status error';
-                alert('Microphone required!\\n\\nPlease:\\n1. Tap "aA" in address bar\\n2. Website Settings\\n3. Enable Microphone\\n4. Refresh page');
-                return;
-            }
-            
-            startBtn.style.display = 'none';
-            stopBtn.style.display = 'block';
-            transcript.innerHTML = '';
-            
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            ws = new WebSocket(protocol + '//' + window.location.host + '/ws');
-            
-            ws.onopen = function() {
-                console.log('🔌 Connected');
-                status.textContent = '📞 Connecting...';
-                status.className = 'status ready';
-                ws.send(JSON.stringify({ type: 'start' }));
-            };
-            
-            ws.onmessage = async function(event) {
-                const data = JSON.parse(event.data);
-                console.log('📨 Received:', data.type);
-                
-                if (data.type === 'greeting' || data.type === 'response') {
-                    addMessage('agent', data.text);
-                    status.textContent = '🔊 AI speaking...';
-                    status.className = 'status speaking';
-                    
-                    await speak(data.text);
-                    
-                    if (data.endcall) {
-                        status.textContent = '📞 Call ended';
-                        status.className = 'status';
-                        setTimeout(() => stopBtn.click(), 1000);
-                    } else {
-                        isListening = true;
-                        
-                        if (!recognition) {
-                            initRecognition();
-                        }
-                        
-                        status.textContent = '🎤 Listening...';
-                        status.className = 'status listening';
-                        
-                        setTimeout(() => {
-                            if (isListening) {
-                                try {
-                                    recognition.start();
-                                } catch (e) {
-                                    console.error('Start error:', e);
-                                }
-                            }
-                        }, 500);
-                    }
-                }
-            };
-            
-            ws.onerror = function(err) {
-                console.error('❌ WebSocket error:', err);
-                status.textContent = '❌ Connection error';
-                status.className = 'status error';
-            };
-            
-            ws.onclose = function() {
-                console.log('🔌 WebSocket closed');
-                if (isListening) {
-                    stopBtn.click();
-                }
-            };
-        };
-        
-        stopBtn.onclick = function() {
-            console.log('⏹️ Stopping call...');
-            
-            isListening = false;
-            isSpeaking = false;
-            
-            if (recognition) {
-                recognition.stop();
-            }
-            if (ws) {
-                ws.send(JSON.stringify({ type: 'end' }));
-                ws.close();
-            }
-            synthesis.cancel();
-            
-            startBtn.style.display = 'block';
-            stopBtn.style.display = 'none';
-            status.textContent = '📞 Call ended';
-            status.className = 'status';
-        };
-        
-        if (synthesis.onvoiceschanged !== undefined) {
-            synthesis.onvoiceschanged = () => {
-                console.log('🎵 Voices loaded:', synthesis.getVoices().length);
-            };
-        }
-        
-        console.log('✅ Medical voice system loaded');
-    </script>
-</body>
-</html>
-"""
+# Initialize Whisper (Lazy load or startup?)
+# Using 'tiny.en' or 'base.en' for speed in this CPU heavy container, 
+# unless GPU is available (check standard). 
+# We'll stick to tiny.en for responsiveness.
+logger.info("Loading Whisper Model...")
+stt_model = WhisperModel("tiny.en", device="cpu", compute_type="int8", download_root=MODELS_DIR)
+logger.info("Whisper Model Loaded.")
 
-@app.get("/")
-async def get():
-    return HTMLResponse(html)
+# Piper Configuration
+PIPER_MODEL_NAME = "en_US-lessac-medium.onnx"
+PIPER_MODEL_PATH = os.path.join(MODELS_DIR, PIPER_MODEL_NAME)
+PIPER_BINARY = "piper" # Assumes piper is in PATH or we need to find it
+
+async def ensure_piper_model():
+    """Check if piper model exists, else download it."""
+    json_path = PIPER_MODEL_PATH + ".json"
+    if not os.path.exists(PIPER_MODEL_PATH) or not os.path.exists(json_path):
+        logger.info(f"Downloading Piper Model: {PIPER_MODEL_NAME}...")
+        url = f"https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/{PIPER_MODEL_NAME}"
+        json_url = url + ".json"
+        
+        async with aiohttp.ClientSession() as session:
+            # Download ONNX
+            async with session.get(url) as resp:
+                if resp.status == 200:
+                    with open(PIPER_MODEL_PATH, 'wb') as f:
+                        f.write(await resp.read())
+            
+            # Download JSON config
+            async with session.get(json_url) as resp:
+                if resp.status == 200:
+                    with open(PIPER_MODEL_PATH + ".json", 'wb') as f:
+                        f.write(await resp.read())
+        logger.info("Piper Model Downloaded.")
+
+@app.on_event("startup")
+async def startup_event():
+    await ensure_piper_model()
+
+# --- Audio Processing Helpers ---
+
+def transcribe_audio(audio_float32):
+    """Run Whisper transcription on float32 numpy array."""
+    segments, info = stt_model.transcribe(audio_float32, beam_size=5, language="en", vad_filter=True)
+    text = " ".join([segment.text for segment in segments]).strip()
+    return text
+
+def run_tts(text):
+    """Generate audio using Piper TTS (via subprocess). Returns bytes (WAV/PCM)."""
+    # Echo text into piper
+    # Command: echo "text" | piper --model model_path --output_raw
+    try:
+        cmd = [
+            "piper",
+            "--model", PIPER_MODEL_PATH,
+            "--output_raw" # Output raw 16-bit 22050Hz (usually) or 16000Hz depending on model
+        ]
+        
+        process = subprocess.Popen(
+            cmd,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        stdout, stderr = process.communicate(input=text.encode('utf-8'))
+        
+        if process.returncode != 0:
+            logger.error(f"Piper TTS Error: {stderr.decode()}")
+            return None
+        
+        return stdout # Raw PCM bytes
+    except Exception as e:
+        logger.error(f"TTS Exception: {e}")
+        return None
+
+class VADManager:
+    """Manages Voice Activity Detection state."""
+    def __init__(self):
+        self.buffer = collections.deque(maxlen=20) # Keep last ~600ms
+        self.triggered = False
+        self.speech_frames = []
+        self.silence_counter = 0
+        self.SILENCE_THRESHOLD = 30 # approx 1 second of silence to stop
+
+    def process_frame(self, frame_bytes):
+        is_speech = vad.is_speech(frame_bytes, SAMPLE_RATE)
+        
+        if not self.triggered:
+            if is_speech:
+                self.triggered = True
+                self.speech_frames.extend(self.buffer)
+                self.speech_frames.append(frame_bytes)
+                logger.debug("Speech START")
+            else:
+                self.buffer.append(frame_bytes)
+        else:
+            self.speech_frames.append(frame_bytes)
+            if not is_speech:
+                self.silence_counter += 1
+            else:
+                self.silence_counter = 0
+            
+            if self.silence_counter > self.SILENCE_THRESHOLD:
+                self.triggered = False
+                self.silence_counter = 0
+                logger.debug("Speech END")
+                # Return the full audio buffer for processing
+                full_audio = b''.join(self.speech_frames)
+                self.speech_frames = []
+                self.buffer.clear()
+                return full_audio
+        
+        return None
+
+# --- WebSocket Endpoint ---
 
 @app.websocket("/ws")
-async def websocketendpoint(websocket: WebSocket):
+async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
+    logger.info("Client Connected")
     
-    db = SessionLocal()
-    call = Call(
-        callernumber="Web Call",
-        starttime=datetime.now(),
-        status='inprogress'
-    )
-    db.add(call)
-    db.commit()
-    callid = str(call.id)
-    db.close()
+    vad_manager = VADManager()
     
-    conversationhistory = []
-    activecalls[callid] = {
-        'history': conversationhistory,
-        'starttime': datetime.now()
-    }
-    
-    try:
-        while True:
-            datastr = await websocket.receivetext()
-            data = json.loads(datastr)
-            
-            if data['type'] == 'start':
-                greeting = agent.getgreeting()
-                conversationhistory.append({"role": "assistant", "content": greeting})
-                
-                await websocket.sendtext(json.dumps({
-                    'type': 'greeting',
-                    'text': greeting
-                }))
-                
-            elif data['type'] == 'speech':
-                usertext = data['text']
-                conversationhistory.append({"role": "user", "content": usertext})
-                
-                print(f"[Call {callid}] User: {usertext}")
-                
-                goodbyephrases = ['goodbye', 'bye', 'thank you', 'thanks', "that's all", "nothing else"]
-                if any(phrase in usertext.lower() for phrase in goodbyephrases):
-                    farewells = [
-                        f"Thank you for calling {config.config.CLINICNAME}. Take care and feel better!",
-                        f"It was my pleasure helping you. Have a great day!",
-                        f"Thanks for calling. Don't hesitate to reach out if you need anything. Goodbye!",
-                    ]
-                    farewell = random.choice(farewells)
-                    conversationhistory.append({"role": "assistant", "content": farewell})
-                    
-                    await websocket.sendtext(json.dumps({
-                        'type': 'response',
-                        'text': farewell,
-                        'endcall': True
-                    }))
-                    
-                    updatecallrecord(callid, conversationhistory, 'completed')
-                    break
-                
-                try:
-                    response = await agent.processinput(
-                        usertext,
-                        conversationhistory,
-                        callid=callid
-                    )
-                    
-                    print(f"[Call {callid}] AI: {response}")
-                    
-                    conversationhistory.append({"role": "assistant", "content": response})
-                    
-                    await websocket.sendtext(json.dumps({
-                        'type': 'response',
-                        'text': response,
-                        'endcall': False
-                    }))
-                    
-                except Exception as e:
-                    print(f"[Call {callid}] Error: {e}")
-                    errorresponse = "I apologize, could you please repeat that?"
-                    
-                    await websocket.sendtext(json.dumps({
-                        'type': 'response',
-                        'text': errorresponse,
-                        'endcall': False
-                    }))
-            
-            elif data['type'] == 'end':
-                updatecallrecord(callid, conversationhistory, 'completed')
-                break
-                
-    except WebSocketDisconnect:
-        print(f"[Call {callid}] Client disconnected")
-        updatecallrecord(callid, conversationhistory, 'disconnected')
-    except Exception as e:
-        print(f"[Call {callid}] Error: {e}")
-        updatecallrecord(callid, conversationhistory, 'failed')
-    finally:
-        if callid in activecalls:
-            del activecalls[callid]
-
-def updatecallrecord(callid: str, conversationhistory: list, status: str):
-    """Update call record in database"""
+    # Init Call Record
     try:
         db = SessionLocal()
-        call = db.query(Call).filter(Call.id == int(callid)).first()
-        
-        if call:
-            call.endtime = datetime.now()
-            call.duration = int((call.endtime - call.starttime).totalseconds())
-            call.status = status
-            
-            transcript = "\n".join([
-                f"{msg['role'].upper()}: {msg['content']}"
-                for msg in conversationhistory
-            ])
-            call.transcript = transcript
-            
-            if len(conversationhistory) > 2:
-                usermessages = [msg['content'] for msg in conversationhistory if msg['role'] == 'user']
-                from agent.intent_classifier import MedicalIntentClassifier
-                classifier = MedicalIntentClassifier()
-                call.intent = classifier.classify(" ".join(usermessages))
-            
-            from agent.emergency_detector import EmergencyDetector
-            detector = EmergencyDetector()
-            isemergency, severity, _ = detector.detectemergency(transcript)
-            call.emergencydetected = isemergency
-            
-            db.commit()
-            print(f"[Call {callid}] Saved: {call.duration}s, Intent: {call.intent}, Emergency: {isemergency}")
-        
+        call = Call(callernumber="Web Stream", starttime=datetime.now(), status='inprogress')
+        db.add(call)
+        db.commit()
+        call_id = str(call.id)
         db.close()
     except Exception as e:
-        print(f"Error updating call: {e}")
+        logger.error(f"Failed to init DB record: {e}")
+        call_id = "temp_" + str(int(time.time()))
+    
+    conversation_history = []
+    
+    try:
+        # Send initial greeting
+        greeting = agent.getgreeting()
+        conversation_history.append({"role": "assistant", "content": greeting})
+        
+        # TTS Greeting (Async)
+        logger.info(f"Generating Greeting: {greeting}")
+        audio_bytes = await asyncio.get_event_loop().run_in_executor(executor, run_tts, greeting)
+        
+        # Send control + audio
+        if audio_bytes:
+             # Send metadata first
+            await websocket.send_text(json.dumps({
+                "type": "response", 
+                "text": greeting,
+                "role": "assistant"
+            }))
+            # Send Binary Audio
+            await websocket.send_bytes(audio_bytes)
+            logger.info("Sent Greeting Audio")
+
+        while True:
+            # Expecting either JSON (control) or Binary (audio)
+            message = await websocket.receive()
+            
+            if "bytes" in message:
+                audio_chunk = message["bytes"]
+                
+                # Check frame size compatibility
+                # Webrtcvad needs exactly 10, 20, or 30ms frames.
+                # 16000Hz * 0.030s = 480 samples * 2 bytes = 960 bytes
+                # If chunk is larger, we must split it.
+                
+                # Log audio energy to debug silence
+                if len(audio_chunk) > 0:
+                     audio_np_debug = np.frombuffer(audio_chunk, dtype=np.int16)
+                     rms = np.sqrt(np.mean(audio_np_debug**2))
+                     if rms < 100: # Silence threshold roughly
+                         # logger.debug(f"Silence detected (RMS: {rms:.2f})")
+                         pass
+                     else:
+                         logger.info(f"Audio received (Bytes: {len(audio_chunk)}, RMS: {rms:.2f})")
+
+                # Log audio energy to debug silence
+                if len(audio_chunk) > 0:
+                     audio_np_debug = np.frombuffer(audio_chunk, dtype=np.int16)
+                     rms = np.sqrt(np.mean(audio_np_debug**2))
+                     if rms < 100: # Silence threshold roughly
+                         # logger.debug(f"Silence detected (RMS: {rms:.2f})")
+                         pass
+                     else:
+                         logger.info(f"Audio received (Bytes: {len(audio_chunk)}, RMS: {rms:.2f})")
+
+                offset = 0
+                while offset + 960 <= len(audio_chunk):
+                    frame = audio_chunk[offset:offset+960]
+                    offset += 960
+                    
+                    speech_audio = vad_manager.process_frame(frame)
+                    
+                    if speech_audio:
+                        logger.info(f"Processing Speech Segment ({len(speech_audio)} bytes)...")
+                        
+                        # Convert to float32 for Whisper
+                        # 1. From Int16 to Float32
+                        audio_np = np.frombuffer(speech_audio, dtype=np.int16).astype(np.float32) / 32768.0
+                        
+                        # 2. Transcribe (Blocking -> Thread)
+                        user_text = await asyncio.get_event_loop().run_in_executor(executor, transcribe_audio, audio_np)
+                        logger.info(f"User Said: {user_text}")
+                        
+                        if not user_text.strip():
+                            continue
+                            
+                        # Send transcript update
+                        await websocket.send_text(json.dumps({
+                            "type": "transcript",
+                            "text": user_text,
+                            "role": "user"
+                        }))
+                        
+                        # 3. Agent Logic
+                        if "goodbye" in user_text.lower():
+                            farewell = "Goodbye! Take care."
+                            await websocket.send_text(json.dumps({"type": "response", "text": farewell, "endcall": True}))
+                            break
+                            
+                        conversation_history.append({"role": "user", "content": user_text})
+                        
+                        # Call Agent (Blocking-ish)
+                        # The agent.processinput returns a JSON string now
+                        json_response = await agent.processinput(user_text, conversation_history, callid=call_id)
+                        
+                        try:
+                            parsed_response = json.loads(json_response)
+                            agent_text = parsed_response.get("spoken_response", "")
+                        except:
+                            agent_text = json_response
+                        
+                        conversation_history.append({"role": "assistant", "content": agent_text})
+                        logger.info(f"Agent Response: {agent_text}")
+                        
+                        # 4. Generate TTS
+                        tts_audio = await asyncio.get_event_loop().run_in_executor(executor, run_tts, agent_text)
+                        
+                        if tts_audio:
+                             await websocket.send_text(json.dumps({
+                                "type": "response", # triggers client to play next blob
+                                "text": agent_text,
+                                "role": "assistant"
+                            }))
+                             await websocket.send_bytes(tts_audio)
+
+            elif "text" in message:
+                # Handle control messages (if any)
+                data = json.loads(message["text"])
+                msg_type = data.get("type")
+                
+                if msg_type == "start":
+                    pass 
+                
+                elif msg_type == "speech":
+                    # Simulated speech for testing/legacy frontend
+                    user_text = data.get("text", "")
+                    logger.info(f"Simulated Speech: {user_text}")
+                    
+                    conversation_history.append({"role": "user", "content": user_text})
+                    
+                    # Call Agent
+                    json_response = await agent.processinput(user_text, conversation_history, callid=call_id)
+                    try:
+                        parsed_response = json.loads(json_response)
+                        agent_text = parsed_response.get("spoken_response", "")
+                    except:
+                        agent_text = json_response
+                    
+                    conversation_history.append({"role": "assistant", "content": agent_text})
+                    logger.info(f"Agent Response: {agent_text}")
+                    
+                    # Generate TTS
+                    tts_audio = await asyncio.get_event_loop().run_in_executor(executor, run_tts, agent_text)
+                    
+                    if tts_audio:
+                         await websocket.send_text(json.dumps({
+                            "type": "response", 
+                            "text": agent_text,
+                            "role": "assistant"
+                        }))
+                         await websocket.send_bytes(tts_audio)
+    
+    except WebSocketDisconnect:
+        logger.info("Client Disconnected")
+    except Exception as e:
+        logger.error(f"WS Error: {e}", exc_info=True)
+    finally:
+        # Save Call Status
+        pass
 
 if __name__ == "__main__":
     import uvicorn
-
-    print("\n" + "="*70)
-    print("🏥 AI MEDICAL RECEPTIONIST - VOICE SYSTEM")
-    print("="*70)
-    print(f"\n📱 Access: http://localhost:{config.config.VOICEPORT}")
-    print(f"📱 Local: http://127.0.0.1:{config.config.VOICEPORT}")
-    print("\n✨ Features:")
-    print("   ✅ Emergency detection")
-    print("   ✅ Appointment booking")
-    print("   ✅ Patient verification")
-    print("   ✅ Medical Q&A")
-    print("   ✅ HIPAA compliant")
-    print("\n" + "="*70 + "\n")
-
+    print("🚀 Starting Streaming Voice Server...")
     uvicorn.run(app, host=config.config.APIHOST, port=config.config.VOICEPORT)

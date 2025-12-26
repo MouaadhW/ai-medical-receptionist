@@ -69,6 +69,12 @@ Thumbs.db
 
 # Ollama models (optional - large files)
 .ollama/
+ollama_data/
+
+# AI Models (Whisper/Piper download cache)
+backend/models/
+models/
+mimicdata/
 
 # Testing
 .pytest_cache/
