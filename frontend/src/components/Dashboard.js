@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import AdminAppointmentManager from './AdminAppointmentManager';
+import AdminDoctorManager from './AdminDoctorManager';
 import './Dashboard.css';
 
 const APIURL = process.env.REACTAPPAPIURL || '/api';
@@ -122,6 +124,8 @@ function Dashboard() {
         </div>
       </div>
 
+      <AdminDoctorManager />
+
       <div className="charts-grid">
         {intentData.length > 0 ? (
           <div className="chart-card">
@@ -223,6 +227,8 @@ function Dashboard() {
           </div>
         </div >
       </div >
+
+      <AdminAppointmentManager />
 
       <div className="system-status">
         <div className="status-indicator">

@@ -19,7 +19,12 @@ function ChatInterface() {
 
     const connectWebSocket = () => {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const ws = new WebSocket(`${protocol}//localhost:8003/ws`);
+        const token = localStorage.getItem('token');
+        console.log('Connecting with token:', token ? token.substring(0, 10) + '...' : 'None');
+        const url = token
+            ? `${protocol}//localhost:8003/ws?token=${token}`
+            : `${protocol}//localhost:8003/ws`;
+        const ws = new WebSocket(url);
 
         ws.onopen = () => {
             console.log('WebSocket connected');

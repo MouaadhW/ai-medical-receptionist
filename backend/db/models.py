@@ -29,6 +29,7 @@ class Patient(Base):
     # Relationships
     appointments = relationship("Appointment", back_populates="patient")
     calls = relationship("Call", back_populates="patient")
+    user = relationship("User", back_populates="patient")
 
 
 class Doctor(Base):
@@ -42,6 +43,10 @@ class Doctor(Base):
     email = Column(String)
     availabledays = Column(String)  # JSON string of available days
     createdat = Column(DateTime, default=datetime.now)
+    
+    # Link to User account
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    user = relationship("User", back_populates="doctor_profile")
 
     # Relationships
     appointments = relationship("Appointment", back_populates="doctor")
@@ -52,7 +57,8 @@ class Appointment(Base):
     __tablename__ = "appointments"
 
     id = Column(Integer, primary_key=True, index=True)
-    patientid = Column(Integer, ForeignKey("patients.id"), nullable=False)
+    patientid = Column(Integer, ForeignKey("patients.id"), nullable=True)  # Made nullable for user-based appointments
+    userid = Column(Integer, ForeignKey("users.id"), nullable=True)  # Link to registered users
     doctorid = Column(Integer, ForeignKey("doctors.id"), nullable=False)
     appointmentdate = Column(Date, nullable=False, index=True)
     appointmenttime = Column(Time, nullable=False)
@@ -65,6 +71,7 @@ class Appointment(Base):
 
     # Relationships
     patient = relationship("Patient", back_populates="appointments")
+    user = relationship("User", back_populates="appointments")
     doctor = relationship("Doctor", back_populates="appointments")
 
 
@@ -103,3 +110,28 @@ class MedicalKnowledge(Base):
     severity = Column(String)  # low, medium, high, emergency
     commonsymptoms = Column(Text)
     createdat = Column(DateTime, default=datetime.now)
+
+# User model for authentication and role‑based access control
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, nullable=False, index=True)
+    email = Column(String, unique=True, nullable=False, index=True)
+    hashed_password = Column(String, nullable=False)
+    role = Column(String, nullable=False, default="user")  # "admin" or "user"
+    otid = Column(String, unique=True, index=True)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    # Optional link to a Patient record (if the user is a patient)
+    patient_id = Column(Integer, ForeignKey("patients.id"), nullable=True)
+    patient = relationship("Patient", back_populates="user", uselist=False)
+    doctor_profile = relationship("Doctor", back_populates="user", uselist=False)
+    appointments = relationship("Appointment", back_populates="user", cascade="all, delete-orphan")
+
+# Temporary call record for unknown callers.
+class TempCall(Base):
+    __tablename__ = "tempcalls"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    phone = Column(String, nullable=False, index=True)
+    timestamp = Column(DateTime, default=datetime.utcnow)

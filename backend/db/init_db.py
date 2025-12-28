@@ -1,5 +1,6 @@
 from db.database import SessionLocal, initdatabase
-from db.models import Patient, Doctor, Appointment, MedicalKnowledge
+from db.models import Patient, Doctor, Appointment, MedicalKnowledge, User
+from auth import get_password_hash
 from datetime import datetime, date, time, timedelta
 from loguru import logger
 import random
@@ -14,12 +15,25 @@ def seeddatabase():
     
     try:
         # Check if data already exists
+        # Check if admin exists
+        if not db.query(User).filter(User.username == "admin").first():
+            admin_user = User(
+                username="admin",
+                email="admin@clinic.com",
+                hashed_password=get_password_hash("admin123"),
+                role="admin",
+                otid="00000"
+            )
+            db.add(admin_user)
+            db.commit()
+            logger.info("Added admin user")
+
+        # Check if data already exists
         if db.query(Patient).count() > 0:
             logger.info("Database already seeded")
             return
         
-        logger.info("Seeding database with sample data...")
-        
+        logger.info("Seeding database with sample data...")        
         # Sample Doctors
         doctors = [
             Doctor(

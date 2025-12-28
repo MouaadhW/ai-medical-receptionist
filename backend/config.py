@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     APPNAME: str = "AI Medical Receptionist"
     CLINICNAME: str = "HealthCare Clinic"
     VERSION: str = "1.0.0"
+    SECRET_KEY: str = "supersecretkey123"  # In production, use env variable
     
     # Server
     APIHOST: str = "0.0.0.0"
@@ -41,6 +42,14 @@ class Settings(BaseSettings):
     # Voice Settings
     SPEECHRATE: float = 1.2  # 20% faster
     ENABLEVOICERECORDING: bool = True
+
+    # Email Settings (SMTP)
+    SMTPSERVER: str = "smtp.gmail.com"  # e.g., smtp.gmail.com, smtp.sendgrid.net
+    SMTPPORT: int = 587
+    SMTPUSERNAME: str = "your-email@gmail.com"
+    SMTPPASSWORD: str = "your-app-password"
+    SENDEREMAIL: str = "noreply@medpulse.com"
+    ENABLEEMAILNOTIFICATIONS: bool = True
     
     class Config:
         envfile = ".env"

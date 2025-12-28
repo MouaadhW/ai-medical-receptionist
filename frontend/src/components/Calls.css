@@ -1,0 +1,236 @@
+/* Calls Page Styles */
+
+.calls-page {
+    padding: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.page-header {
+    margin-bottom: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.header-content h2 {
+    margin: 0;
+    font-size: 28px;
+    color: #2c3e50;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.stats-summary {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+/* Stat Badges */
+.stat-badge {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.stat-badge.emergency-stat {
+    background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+    /* Red for Emergency */
+}
+
+.stat-badge strong {
+    font-size: 16px;
+    margin-right: 4px;
+}
+
+/* Table container */
+.table-container {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+.calls-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.calls-table thead {
+    background: linear-gradient(135deg, #2c3e50 0%, #4ca1af 100%);
+    /* Blue/Slate Gradient for Calls */
+    color: white;
+}
+
+.calls-table thead th {
+    padding: 16px 12px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.calls-table tbody tr {
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.2s ease;
+}
+
+.calls-table tbody tr:hover {
+    background-color: #f8f9ff;
+}
+
+.calls-table td {
+    padding: 14px 12px;
+    vertical-align: middle;
+}
+
+/* Badges */
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-badge.completed {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.status-badge.inprogress {
+    background: #dbeafe;
+    color: #1e40af;
+    border: 1px solid #93c5fd;
+    animation: pulse 2s infinite;
+}
+
+.status-badge.failed {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.intent-badge {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    background: #f3f4f6;
+    color: #4b5563;
+}
+
+.intent-badge.appointment {
+    background: #e0f2f1;
+    color: #00695c;
+}
+
+.intent-badge.emergency {
+    background: #fee2e2;
+    color: #b91c1c;
+    font-weight: bold;
+}
+
+.intent-badge.info {
+    background: #e0f7fa;
+    color: #006064;
+}
+
+/* Modal Styles */
+.call-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(2px);
+}
+
+.modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.transcript {
+    background: #f8fafc;
+    padding: 20px;
+    border-radius: 8px;
+    margin: 20px 0;
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #e2e8f0;
+}
+
+.message {
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
+
+.message strong {
+    display: block;
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-bottom: 2px;
+}
+
+.message.user {
+    color: #0f172a;
+}
+
+.message.assistant {
+    color: #0f172a;
+}
+
+.close-btn {
+    background: #64748b;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    float: right;
+}
+
+.close-btn:hover {
+    background: #475569;
+}

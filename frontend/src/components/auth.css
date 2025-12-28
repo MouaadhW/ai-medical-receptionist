@@ -1,0 +1,28 @@
+.auth-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    padding: var(--space-4);
+}
+
+.auth-card {
+    width: 100%;
+    max-width: 450px;
+    padding: var(--space-8);
+}
+
+/* MODIFY THE LOGIN/REGISTER LOGO SIZE HERE */
+.auth-logo {
+    width: 65px;
+    /* Change this value to adjust auth logo size */
+    height: auto;
+    display: block;
+    margin: 0 auto var(--space-4);
+}
+
+.auth-card h2 {
+    color: var(--primary-color);
+    margin-bottom: var(--space-6);
+}

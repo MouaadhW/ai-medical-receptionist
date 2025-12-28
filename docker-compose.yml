@@ -2,6 +2,7 @@ version: '3.8'
 
 services:
   backend:
+    build: ./backend
     image: medical_backend
     container_name: medical_backend
     ports:
@@ -33,6 +34,7 @@ services:
     command: python voice/voice_server.py
 
   frontend:
+    build: ./frontend
     image: medical_frontend
     container_name: medical_frontend
     ports:

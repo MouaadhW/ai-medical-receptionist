@@ -8,6 +8,9 @@ ollama==0.1.6
 loguru==0.7.2
 python-dateutil==2.8.2
 pydantic==2.5.0
+PyJWT==2.8.0
+passlib[bcrypt]==1.7.4
+bcrypt==3.2.2
 pydantic-settings==2.1.0
 faster-whisper>=0.10.0
 webrtcvad==2.0.10

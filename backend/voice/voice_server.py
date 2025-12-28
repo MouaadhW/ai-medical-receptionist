@@ -37,8 +37,9 @@ logger = logging.getLogger("VoiceServer")
 sys.path.insert(0, BASE_DIR)
 from agent.medical_agent import MedicalReceptionistAgent
 from db.database import SessionLocal
-from db.models import Call
+from db.models import Call, User
 import config
+from auth import decode_access_token
 
 app = FastAPI(title="Medical Receptionist Streaming Server")
 
@@ -172,11 +173,28 @@ class VADManager:
 # --- WebSocket Endpoint ---
 
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
+async def websocket_endpoint(websocket: WebSocket, token: str = None):
     await websocket.accept()
-    logger.info("Client Connected")
+    logger.info(f"Client Connected. Token present? {bool(token)}")
+    if token:
+        logger.info(f"Token: {token[:10]}...")
     
-    vad_manager = VADManager()
+    # Authenticate via Token
+    user = None
+    if token:
+        try:
+            payload = decode_access_token(token)
+            username = payload.get("sub")
+            if username:
+                db = SessionLocal()
+                user = db.query(User).filter(User.username == username).first()
+                if user:
+                    # Eager load patient
+                    _ = user.patient
+                db.close()
+                logger.info(f"Authenticated User: {username}")
+        except Exception as e:
+            logger.error(f"Token validation failed: {e}")
     
     # Init Call Record
     try:
@@ -190,6 +208,26 @@ async def websocket_endpoint(websocket: WebSocket):
         logger.error(f"Failed to init DB record: {e}")
         call_id = "temp_" + str(int(time.time()))
     
+    # Initialize Conversation State with User Info (if authenticated)
+    if user:
+        agent.conversationstate[call_id] = {
+            "intent": None,
+            "patientid": user.patient_id,
+            "patientname": user.patient.name if user.patient else user.username,
+            "userid": user.id,
+            "phone": None,
+            "verified": True,   # Auto-verify logged-in users
+            "otid": user.otid,
+            "awaitingname": False,
+            "awaitingkey": False,
+            "awaitingreason": False,
+            "appointmentreason": None,
+            "retrycount": 0
+        }
+        logger.info(f"State set for call_id '{call_id}': {agent.conversationstate.get(call_id)}")
+    else:
+        logger.info("User not authenticated or user object is None")
+
     conversation_history = []
     
     try:
@@ -212,6 +250,18 @@ async def websocket_endpoint(websocket: WebSocket):
             # Send Binary Audio
             await websocket.send_bytes(audio_bytes)
             logger.info("Sent Greeting Audio")
+
+        # Construct User Context for State Enforcement
+        user_context = None
+        if user:
+            user_context = {
+                "patientid": user.patient_id,
+                "patientname": user.patient.name if user.patient else user.username,
+                "userid": user.id,
+                "verified": True,
+                "otid": user.otid,
+                "awaitingkey": False
+            }
 
         while True:
             # Expecting either JSON (control) or Binary (audio)
@@ -283,7 +333,8 @@ async def websocket_endpoint(websocket: WebSocket):
                         
                         # Call Agent (Blocking-ish)
                         # The agent.processinput returns a JSON string now
-                        json_response = await agent.processinput(user_text, conversation_history, callid=call_id)
+                        print(f"DEBUG_VOICE: Calling processinput with context: {user_context}", flush=True)
+                        json_response = await agent.processinput(user_text, conversation_history, callid=call_id, user_context=user_context)
                         
                         try:
                             parsed_response = json.loads(json_response)
@@ -321,7 +372,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     conversation_history.append({"role": "user", "content": user_text})
                     
                     # Call Agent
-                    json_response = await agent.processinput(user_text, conversation_history, callid=call_id)
+                    json_response = await agent.processinput(user_text, conversation_history, callid=call_id, user_context=user_context)
                     try:
                         parsed_response = json.loads(json_response)
                         agent_text = parsed_response.get("spoken_response", "")

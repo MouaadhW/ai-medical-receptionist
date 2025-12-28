@@ -86,7 +86,7 @@ htmlcov/
 .ipynb_checkpoints
 
 # Docker
-*.dockerignore
+
 
 # Temporary files
 *.tmp
