@@ -7,7 +7,7 @@ An intelligent, HIPAA-compliant AI receptionist for medical clinics with emergen
 ### Core Capabilities
 - 🚨 **Emergency Detection** - Automatic triage for critical situations with immediate 911 protocols
 - 📅 **Smart Scheduling** - Appointment booking with doctor preference and availability checking
-- �‍⚕️ **Doctor Management** - **NEW** Admin interface to manage medical staff and schedules
+- 👨‍⚕️ **Doctor Management** - **NEW** Admin interface to manage medical staff and schedules
 - 📞 **Modern Voice Interface** - Real-time speech-to-text with conversational AI
 - 📊 **Analytics Dashboard** - Beautiful, modern visualizations of clinic metrics
 - 📜 **Call Transcripts** - **NEW** Full history and transcripts of all patient interactions
@@ -21,35 +21,59 @@ An intelligent, HIPAA-compliant AI receptionist for medical clinics with emergen
 
 ---
 
-## ⚡ Quick Start (Docker - Recommended)
+## 🛠️ Installation & Setup Guide
 
-Everything is containerized for easy deployment.
+This project is fully containerized using Docker, making it easy to run without complex local setup.
 
-### Prerequisites
-- **Docker Desktop** installed and running
+### 📋 Prerequisites (What to Install)
 
-### Installation
+Before starting, ensure you have the following installed on your computer:
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/MouaadhW/ai-medical-receptionist
-   cd ai-medical-receptionist
-   ```
+1.  **Docker Desktop** (Essential)
+    *   **Windows/Mac**: Download from [Docker Desktop Website](https://www.docker.com/products/docker-desktop/).
+    *   *Note for Windows*: Ensure WSL 2 (Windows Subsystem for Linux) is enabled during installation.
+2.  **Git** (To clone the project)
+    *   Download from [Git SCM](https://git-scm.com/downloads).
 
-2. **Run the System:**
-   ```bash
-   docker-compose up --build
-   ```
-   *Note: First run downloads the 5GB LLM model. It may take some time.*
+---
 
-3. **Access the Application:**
-   - **Modern Dashboard:** [http://localhost:3000](http://localhost:3000)
-   - **Voice Interface:** [http://localhost:3000/phone](http://localhost:3000/phone)
-   - **Backend API:** [http://localhost:8000/docs](http://localhost:8000/docs)
+### 🚀 Step-by-Step Installation
 
-**Default Login:**
-- Username: `admin`
-- Password: `password`
+Follow these steps to get the system running:
+
+#### 1. Clone the Repository
+Open your terminal (Command Prompt, PowerShell, or Terminal) and run:
+
+```bash
+git clone https://github.com/MouaadhW/ai-medical-receptionist
+cd ai-medical-receptionist
+```
+
+#### 2. Configure Environment (Optional)
+The project comes with a default configuration. If you want to customize settings (like clinic name):
+*   Copy `.env.example` to `.env` (or just use the defaults provided in docker-compose).
+*   The default login for the admin panel is `admin` / `password`.
+
+#### 3. Build & Run the System
+Run the following command to build the containers and start the application:
+
+```bash
+docker-compose up --build
+```
+
+**⚠️ Important Note for First Run per:**
+*   The first launch will take **several minutes** (5-10+ mins depending on internet speed).
+*   This is because it needs to download the **AI Models** (Llama 3, ~5GB) and setup the database.
+*   Wait until you see `Uvicorn running on http://0.0.0.0:8000` in the logs.
+
+#### 4. Access the Application
+Once the logs stop scrolling and show the server is ready, open your browser:
+
+| Interface | URL | Description |
+|-----------|-----|-------------|
+| **Admin Dashboard** | [http://localhost:3000](http://localhost:3000) | Main interface for doctors/admins |
+| **Voice Interface** | [http://localhost:3000/phone](http://localhost:3000/phone) | Simulate a patient call |
+| **Backend API Docs** | [http://localhost:8000/docs](http://localhost:8000/docs) | Swagger UI for testing APIs |
 
 ---
 
@@ -65,7 +89,7 @@ The revamped **Admin Dashboard** provides a holistic view of the clinic:
 Navigate to the **Doctors** page to:
 - **Add New Doctors:** Create profiles with specialties (Cardiology, Pediatrics, etc.).
 - **View Roster:** See all registered medical staff in a clean, searchable table.
-- **Schedule Management:** (Upcoming) Manage doctor shifts.
+- **Schedule Management:** Manage doctor availability.
 
 ### 3. Call History & Transcripts
 The **Calls** page offers meaningful insights:
