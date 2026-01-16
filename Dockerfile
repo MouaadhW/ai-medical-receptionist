@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Ensure 'pip' command exists (aliased to pip3)
-RUN ln -s /usr/bin/pip3 /usr/bin/pip
+RUN ln -sf /usr/bin/pip3 /usr/bin/pip
 
 # Install Ollama
 RUN curl -fsSL https://ollama.com/install.sh | sh
