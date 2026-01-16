@@ -33,17 +33,36 @@ function ChatInterface() {
         };
 
         ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
+            // Check if data is a Blob (binary audio data)
+            if (event.data instanceof Blob) {
+                // Ignore audio data in text chat interface
+                // console.log('Received audio blob, ignoring in text interface');
+                return;
+            }
 
-            if (data.type === 'greeting' || data.type === 'response') {
-                setMessages(prev => [...prev, {
-                    role: 'agent',
-                    content: data.text,
-                    timestamp: new Date().toLocaleTimeString()
-                }]);
-                setIsWaitingResponse(false);
+            // Ensure we have string data before attempting JSON.parse
+            if (typeof event.data !== 'string') {
+                console.warn('Received non-string, non-Blob data:', typeof event.data);
+                return;
+            }
+
+            try {
+                const data = JSON.parse(event.data);
+
+                if (data.type === 'greeting' || data.type === 'response') {
+                    setMessages(prev => [...prev, {
+                        role: 'agent',
+                        content: data.text,
+                        timestamp: new Date().toLocaleTimeString()
+                    }]);
+                    setIsWaitingResponse(false);
+                }
+            } catch (error) {
+                console.error('Error parsing WebSocket message:', error);
+                console.error('Problematic data:', event.data);
             }
         };
+
 
         ws.onerror = (error) => {
             console.error('WebSocket error:', error);
@@ -197,16 +216,6 @@ function ChatInterface() {
                     </button>
                 </form>
 
-                <div className="chat-info">
-                    <p><strong>💡 Features:</strong></p>
-                    <ul>
-                        <li>✅ TTS (Text-to-Speech): Implemented in voice interface</li>
-                        <li>✅ STT (Speech-to-Text): Implemented in voice interface</li>
-                        <li>💬 This chat: Text-only for easy testing</li>
-                        <li>🚨 Emergency detection active</li>
-                        <li>🩺 8-step medical triage process</li>
-                    </ul>
-                </div>
             </div>
         </div>
     );

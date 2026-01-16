@@ -57,60 +57,89 @@ vad = webrtcvad.Vad(VAD_MODE)
 executor = ThreadPoolExecutor(max_workers=3)  # For STT/TTS blocking calls
 
 # Initialize Whisper (Lazy load or startup?)
-# Using 'tiny.en' or 'base.en' for speed in this CPU heavy container, 
-# unless GPU is available (check standard). 
-# We'll stick to tiny.en for responsiveness.
+# using 'base' for multilingual support (en/fr)
 logger.info("Loading Whisper Model...")
-stt_model = WhisperModel("tiny.en", device="cpu", compute_type="int8", download_root=MODELS_DIR)
+# Use 'base' for better multilingual performance, or 'tiny' for speed if 'base' is too slow
+stt_model = WhisperModel("base", device="cpu", compute_type="int8", download_root=MODELS_DIR)
 logger.info("Whisper Model Loaded.")
 
 # Piper Configuration
-PIPER_MODEL_NAME = "en_US-lessac-medium.onnx"
-PIPER_MODEL_PATH = os.path.join(MODELS_DIR, PIPER_MODEL_NAME)
-PIPER_BINARY = "piper" # Assumes piper is in PATH or we need to find it
+PIPER_MODELS = {
+    "en": "en_US-lessac-medium.onnx",
+    "fr": "fr_FR-upmc-medium.onnx"
+}
 
-async def ensure_piper_model():
-    """Check if piper model exists, else download it."""
-    json_path = PIPER_MODEL_PATH + ".json"
-    if not os.path.exists(PIPER_MODEL_PATH) or not os.path.exists(json_path):
-        logger.info(f"Downloading Piper Model: {PIPER_MODEL_NAME}...")
-        url = f"https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/{PIPER_MODEL_NAME}"
-        json_url = url + ".json"
-        
-        async with aiohttp.ClientSession() as session:
-            # Download ONNX
-            async with session.get(url) as resp:
-                if resp.status == 200:
-                    with open(PIPER_MODEL_PATH, 'wb') as f:
-                        f.write(await resp.read())
+# Base URL for Piper models
+PIPER_URL_BASE = "https://huggingface.co/rhasspy/piper-voices/resolve/main"
+
+PIPER_MODEL_PATHS = {
+    "en": os.path.join(MODELS_DIR, PIPER_MODELS["en"]),
+    "fr": os.path.join(MODELS_DIR, PIPER_MODELS["fr"])
+}
+
+async def ensure_piper_models():
+    """Check if piper models exist, else download them."""
+    
+    # Model URLs mapping
+    urls = {
+        "en": f"{PIPER_URL_BASE}/en/en_US/lessac/medium/{PIPER_MODELS['en']}",
+        "fr": f"{PIPER_URL_BASE}/fr/fr_FR/upmc/medium/{PIPER_MODELS['fr']}"
+    }
+
+    async with aiohttp.ClientSession() as session:
+        for lang, model_name in PIPER_MODELS.items():
+            model_path = PIPER_MODEL_PATHS[lang]
+            json_path = model_path + ".json"
             
-            # Download JSON config
-            async with session.get(json_url) as resp:
-                if resp.status == 200:
-                    with open(PIPER_MODEL_PATH + ".json", 'wb') as f:
-                        f.write(await resp.read())
-        logger.info("Piper Model Downloaded.")
+            if not os.path.exists(model_path) or not os.path.exists(json_path):
+                logger.info(f"Downloading Piper Model ({lang}): {model_name}...")
+                url = urls[lang]
+                json_url = url + ".json"
+                
+                # Download ONNX
+                async with session.get(url) as resp:
+                    if resp.status == 200:
+                        with open(model_path, 'wb') as f:
+                            f.write(await resp.read())
+                    else:
+                        logger.error(f"Failed to download model {model_name}: status {resp.status}")
+                
+                # Download JSON config
+                async with session.get(json_url) as resp:
+                    if resp.status == 200:
+                        with open(json_path, 'wb') as f:
+                            f.write(await resp.read())
+                
+                logger.info(f"Piper Model ({lang}) Downloaded.")
 
 @app.on_event("startup")
 async def startup_event():
-    await ensure_piper_model()
+    await ensure_piper_models()
 
 # --- Audio Processing Helpers ---
 
 def transcribe_audio(audio_float32):
     """Run Whisper transcription on float32 numpy array."""
-    segments, info = stt_model.transcribe(audio_float32, beam_size=5, language="en", vad_filter=True)
+    # Remove language="en" to allow auto-detection
+    segments, info = stt_model.transcribe(audio_float32, beam_size=5, vad_filter=True)
     text = " ".join([segment.text for segment in segments]).strip()
     return text
 
-def run_tts(text):
+def run_tts(text, language="en"):
     """Generate audio using Piper TTS (via subprocess). Returns bytes (WAV/PCM)."""
     # Echo text into piper
     # Command: echo "text" | piper --model model_path --output_raw
+    
+    # Fallback to english if lang not supported
+    if language not in PIPER_MODEL_PATHS:
+        language = "en"
+        
+    model_path = PIPER_MODEL_PATHS[language]
+
     try:
         cmd = [
             "piper",
-            "--model", PIPER_MODEL_PATH,
+            "--model", model_path,
             "--output_raw" # Output raw 16-bit 22050Hz (usually) or 16000Hz depending on model
         ]
         
@@ -230,6 +259,9 @@ async def websocket_endpoint(websocket: WebSocket, token: str = None):
 
     conversation_history = []
     
+    # Initialize VAD Manager for this connection
+    vad_manager = VADManager()
+    
     try:
         # Send initial greeting
         greeting = agent.getgreeting()
@@ -237,7 +269,7 @@ async def websocket_endpoint(websocket: WebSocket, token: str = None):
         
         # TTS Greeting (Async)
         logger.info(f"Generating Greeting: {greeting}")
-        audio_bytes = await asyncio.get_event_loop().run_in_executor(executor, run_tts, greeting)
+        audio_bytes = await asyncio.get_event_loop().run_in_executor(executor, run_tts, greeting, "en")
         
         # Send control + audio
         if audio_bytes:
@@ -339,14 +371,18 @@ async def websocket_endpoint(websocket: WebSocket, token: str = None):
                         try:
                             parsed_response = json.loads(json_response)
                             agent_text = parsed_response.get("spoken_response", "")
+                            # Extract language if provided, default to en
+                            response_metadata = parsed_response.get("metadata", {})
+                            language = response_metadata.get("language", "en")
                         except:
                             agent_text = json_response
+                            language = "en"
                         
                         conversation_history.append({"role": "assistant", "content": agent_text})
-                        logger.info(f"Agent Response: {agent_text}")
+                        logger.info(f"Agent Response ({language}): {agent_text}")
                         
                         # 4. Generate TTS
-                        tts_audio = await asyncio.get_event_loop().run_in_executor(executor, run_tts, agent_text)
+                        tts_audio = await asyncio.get_event_loop().run_in_executor(executor, run_tts, agent_text, language)
                         
                         if tts_audio:
                              await websocket.send_text(json.dumps({
@@ -376,14 +412,16 @@ async def websocket_endpoint(websocket: WebSocket, token: str = None):
                     try:
                         parsed_response = json.loads(json_response)
                         agent_text = parsed_response.get("spoken_response", "")
+                        language = parsed_response.get("metadata", {}).get("language", "en")
                     except:
                         agent_text = json_response
+                        language = "en"
                     
                     conversation_history.append({"role": "assistant", "content": agent_text})
                     logger.info(f"Agent Response: {agent_text}")
                     
                     # Generate TTS
-                    tts_audio = await asyncio.get_event_loop().run_in_executor(executor, run_tts, agent_text)
+                    tts_audio = await asyncio.get_event_loop().run_in_executor(executor, run_tts, agent_text, language)
                     
                     if tts_audio:
                          await websocket.send_text(json.dumps({

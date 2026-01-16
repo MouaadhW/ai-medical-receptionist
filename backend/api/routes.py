@@ -17,6 +17,10 @@ from pydantic import BaseModel
 import random
 import string
 
+# Import new route modules
+from api.billing_routes import router as billing_router
+from api.medical_history_routes import router as medical_history_router
+
 router = APIRouter()
 
 

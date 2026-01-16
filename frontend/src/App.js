@@ -1,7 +1,12 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { AnimatePresence } from 'framer-motion';
+import './i18n';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import LandingPage from './components/LandingPage';
+import AboutUs from './components/AboutUs';
+import Services from './components/Services';
 import Dashboard from './components/Dashboard';
 import UserDashboard from './components/UserDashboard';
 import DoctorDashboard from './components/DoctorDashboard';
@@ -13,47 +18,11 @@ import PhoneInterface from './components/PhoneInterface';
 import ChatInterface from './components/ChatInterface';
 import Login from './components/Login';
 import Register from './components/Register';
+import PulseLedger from './components/billing/PulseLedger';
+import NeuralHistory from './components/history/NeuralHistory';
+import Sidebar from './components/Sidebar';
 import './theme.css';
 import './App.css';
-
-// Navigation Component
-const Navbar = () => {
-  const { user, logout } = useAuth();
-
-  if (!user) return null;
-
-  return (
-    <nav className="navbar">
-      <div className="nav-brand">
-        <img src="/assets/medpulse-logo.png" alt="MedPulse" className="nav-logo" />
-        <h1>MedPulse</h1>
-      </div>
-      <div className="nav-links">
-        {user.role === 'admin' ? (
-          <>
-            <Link to="/dashboard" className="nav-link">Dashboard</Link>
-            <Link to="/doctors" className="nav-link">Doctors</Link>
-            <Link to="/patients" className="nav-link">Patients</Link>
-            <Link to="/appointments" className="nav-link">Appointments</Link>
-            <Link to="/calls" className="nav-link">Calls</Link>
-            <Link to="/phone" className="nav-link phone-link">📞 Voice Test</Link>
-            <Link to="/chat" className="nav-link chat-link">💬 Chat Test</Link>
-          </>
-        ) : (
-          <>
-            <Link to="/dashboard" className="nav-link">Home</Link>
-            <Link to="/phone" className="nav-link phone-link">📞 Call Agent</Link>
-            <Link to="/chat" className="nav-link chat-link">💬 Chat</Link>
-          </>
-        )}
-        {user.role === 'doctor' && (
-          <span className="role-badge">Dt.</span>
-        )}
-        <button onClick={logout} className="nav-link logout-link">Logout</button>
-      </div>
-    </nav>
-  );
-};
 
 // Protected Route Component
 const RequireAuth = ({ children, role }) => {
@@ -79,83 +48,132 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        <div className="App">
-          <Navbar />
-          <div className="main-content">
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/" element={<PublicOrDashboard />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-
-              {/* Protected Dashboard Route */}
-              <Route
-                path="/dashboard"
-                element={
-                  <RequireAuth>
-                    <RoleBasedDashboard />
-                  </RequireAuth>
-                }
-              />
-
-              {/* Admin Routes */}
-              <Route
-                path="/patients"
-                element={
-                  <RequireAuth role="admin">
-                    <Patients />
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/doctors"
-                element={
-                  <RequireAuth role="admin">
-                    <Doctors />
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/appointments"
-                element={
-                  <RequireAuth role="admin">
-                    <Appointments />
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/calls"
-                element={
-                  <RequireAuth role="admin">
-                    <Calls />
-                  </RequireAuth>
-                }
-              />
-
-              {/* Shared/Test Routes */}
-              <Route
-                path="/phone"
-                element={
-                  <RequireAuth>
-                    <PhoneInterface />
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/chat"
-                element={
-                  <RequireAuth>
-                    <ChatInterface />
-                  </RequireAuth>
-                }
-              />
-            </Routes>
-          </div>
-        </div>
+        <AppContent />
       </Router>
     </AuthProvider>
   );
 }
+
+// Separate component to use router hooks
+const AppContent = () => {
+  const { user } = useAuth();
+
+  return (
+    <div className="App">
+      {user && <Sidebar />}
+      <div className="main-content">
+        <AnimatePresence mode="wait">
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<PublicOrDashboard />} />
+            <Route path="/about" element={<AboutUs />} />
+            <Route path="/services" element={<Services />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+
+            {/* Protected Dashboard Route */}
+            <Route
+              path="/dashboard"
+              element={
+                <RequireAuth>
+                  <div className="page-transition">
+                    <RoleBasedDashboard />
+                  </div>
+                </RequireAuth>
+              }
+            />
+
+            {/* Admin Routes */}
+            <Route
+              path="/patients"
+              element={
+                <RequireAuth role="admin">
+                  <div className="page-transition">
+                    <Patients />
+                  </div>
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/doctors"
+              element={
+                <RequireAuth role="admin">
+                  <div className="page-transition">
+                    <Doctors />
+                  </div>
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/appointments"
+              element={
+                <RequireAuth role="admin">
+                  <div className="page-transition">
+                    <Appointments />
+                  </div>
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/calls"
+              element={
+                <RequireAuth role="admin">
+                  <div className="page-transition">
+                    <Calls />
+                  </div>
+                </RequireAuth>
+              }
+            />
+
+            {/* Shared/Test Routes */}
+            <Route
+              path="/phone"
+              element={
+                <RequireAuth>
+                  <div className="page-transition">
+                    <PhoneInterface />
+                  </div>
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/chat"
+              element={
+                <RequireAuth>
+                  <div className="page-transition">
+                    <ChatInterface />
+                  </div>
+                </RequireAuth>
+              }
+            />
+
+            {/* Patient-Centric Modules */}
+            <Route
+              path="/billing"
+              element={
+                <RequireAuth>
+                  <div className="page-transition">
+                    <PulseLedger />
+                  </div>
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/history"
+              element={
+                <RequireAuth>
+                  <div className="page-transition">
+                    <NeuralHistory />
+                  </div>
+                </RequireAuth>
+              }
+            />
+          </Routes>
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+};
 
 // Helper to show landing page or dashboard
 const PublicOrDashboard = () => {

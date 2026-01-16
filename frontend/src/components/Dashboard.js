@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import AdminAppointmentManager from './AdminAppointmentManager';
@@ -11,6 +12,7 @@ const COLORS = ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#00c9ff', '#92fe9d'
 
 function Dashboard() {
   const [analytics, setAnalytics] = useState(null);
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -84,7 +86,7 @@ function Dashboard() {
   return (
     <div className="dashboard">
       <div className="dashboard-header">
-        <h2 className="page-title">📊 Dashboard</h2>
+        <h2 className="page-title">📊 {t('dashboard')}</h2>
         <button className="refresh-btn" onClick={fetchAnalytics}>
           🔄 Refresh
         </button>
@@ -94,7 +96,7 @@ function Dashboard() {
         <div className="stat-card">
           <div className="stat-icon">👥</div>
           <div className="stat-content">
-            <h3>Total Patients</h3>
+            <h3>{t('active_patients')}</h3>
             <p className="stat-number">{analytics.patients?.total || 0}</p>
           </div>
         </div>
@@ -102,7 +104,7 @@ function Dashboard() {
         <div className="stat-card">
           <div className="stat-icon">📅</div>
           <div className="stat-content">
-            <h3>Upcoming Appointments</h3>
+            <h3>{t('today_appointments')}</h3>
             <p className="stat-number">{analytics.appointments?.upcoming || 0}</p>
           </div>
         </div>
@@ -118,7 +120,7 @@ function Dashboard() {
         <div className="stat-card emergency">
           <div className="stat-icon">🚨</div>
           <div className="stat-content">
-            <h3>Emergency Calls</h3>
+            <h3>{t('emergencies')}</h3>
             <p className="stat-number">{analytics.calls?.emergency || 0}</p>
           </div>
         </div>

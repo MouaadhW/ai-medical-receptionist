@@ -1,0 +1,53 @@
+.glass-card-component {
+    padding: var(--spacing-xl);
+    border-radius: var(--radius-xl);
+    transition: all var(--transition-base);
+    position: relative;
+    overflow: hidden;
+}
+
+.glass-card-animated:hover {
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: var(--shadow-depth-lg);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.glass-card-animated::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg,
+            transparent,
+            rgba(255, 255, 255, 0.1),
+            transparent);
+    transition: left 0.5s;
+    pointer-events: none;
+}
+
+.glass-card-animated:hover::before {
+    left: 100%;
+}
+
+/* Glow variants mapping to theme.css classes logic */
+/* If glowColor="teal" is passed, it adds .glow-teal class which is already in theme.css */
+/* So we don't need to redefine them here if we rely on global utility classes, 
+   but GlassCard.jsx might need adjustment if it relies on specific local classes. 
+   Actually, the JSX adds `glow-${glowColor}`.
+   In theme.css we have .glow-teal, .glow-violet, etc.
+   So if I pass glowColor="teal", it gets .glow-teal. 
+   Perfect. I will remove the redundant glow classes here.
+*/
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .glass-card-component {
+        padding: var(--spacing-md);
+    }
+
+    .glass-card-animated:hover {
+        transform: translateY(-3px) scale(1.01);
+    }
+}

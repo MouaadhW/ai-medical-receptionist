@@ -1,0 +1,14 @@
+{
+    "dashboard": "Tableau de bord",
+    "doctors": "Médecins",
+    "calls": "Appels et Transcriptions",
+    "voice_test": "Test Vocal",
+    "welcome": "Bienvenue, {{name}}",
+    "today_appointments": "Rendez-vous Aujourd'hui",
+    "active_patients": "Patients Actifs",
+    "emergencies": "Urgences",
+    "total_appointments": "Total des Rendez-vous",
+    "marketing_leads": "Pistes Marketing",
+    "recent_activity": "Activité Récente",
+    "admin_portal": "Portail Admin"
+}

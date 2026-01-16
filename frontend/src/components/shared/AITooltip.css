@@ -1,0 +1,97 @@
+.ai-tooltip-container {
+    position: relative;
+    display: inline-block;
+}
+
+.ai-tooltip-trigger {
+    cursor: help;
+    display: inline-block;
+}
+
+.ai-tooltip {
+    padding: var(--space-4);
+    border-radius: var(--radius-lg);
+    max-width: 320px;
+    min-width: 200px;
+    color: var(--gray-900);
+    font-size: var(--text-sm);
+    line-height: 1.5;
+    pointer-events: none;
+    z-index: 10000;
+}
+
+.ai-tooltip-content {
+    position: relative;
+}
+
+.ai-tooltip-loading {
+    padding: var(--space-2);
+}
+
+.ai-tooltip-arrow {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: var(--glass-bg-heavy);
+    border: 1px solid var(--glass-border);
+    transform: rotate(45deg);
+}
+
+.ai-tooltip.top .ai-tooltip-arrow {
+    bottom: -6px;
+    left: 50%;
+    margin-left: -5px;
+    border-top: none;
+    border-left: none;
+}
+
+.ai-tooltip.bottom .ai-tooltip-arrow {
+    top: -6px;
+    left: 50%;
+    margin-left: -5px;
+    border-bottom: none;
+    border-right: none;
+}
+
+.ai-tooltip.left .ai-tooltip-arrow {
+    right: -6px;
+    top: 50%;
+    margin-top: -5px;
+    border-left: none;
+    border-bottom: none;
+}
+
+.ai-tooltip.right .ai-tooltip-arrow {
+    left: -6px;
+    top: 50%;
+    margin-top: -5px;
+    border-right: none;
+    border-top: none;
+}
+
+/* Enhanced styling for richcontent */
+.ai-tooltip-content h4 {
+    font-size: var(--text-base);
+    font-weight: 600;
+    margin-bottom: var(--space-2);
+    color: var(--primary-color);
+}
+
+.ai-tooltip-content p {
+    margin: var(--space-2) 0;
+}
+
+.ai-tooltip-content ul {
+    margin: var(--space-2) 0;
+    padding-left: var(--space-4);
+}
+
+.ai-tooltip-content li {
+    margin: var(--space-1) 0;
+}
+
+.ai-tooltip-content .icon {
+    display: inline-block;
+    margin-right: var(--space-2);
+    color: var(--accent-color);
+}

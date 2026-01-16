@@ -1,236 +1,238 @@
-/* Calls Page Styles */
+/* ==========================================
+   Calls Page - Bio-Digital Prism Theme
+   ========================================== */
 
 .calls-page {
-    padding: 20px;
-    max-width: 1400px;
-    margin: 0 auto;
+    padding: var(--spacing-xl);
+    animation: fadeIn var(--transition-base) ease-out;
 }
 
 .page-header {
-    margin-bottom: 30px;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.header-content {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 15px;
+    margin-bottom: var(--spacing-2xl);
+    padding-bottom: var(--spacing-xl);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .header-content h2 {
-    margin: 0;
-    font-size: 28px;
-    color: #2c3e50;
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    font-size: var(--text-4xl);
+    font-weight: var(--font-bold);
+    background: linear-gradient(135deg, var(--pulse-teal), var(--electric-violet));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0 0 var(--spacing-md) 0;
 }
 
 .stats-summary {
     display: flex;
-    gap: 15px;
-    flex-wrap: wrap;
+    gap: var(--spacing-md);
 }
 
-/* Stat Badges */
 .stat-badge {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 14px;
-    font-weight: 500;
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-}
-
-.stat-badge.emergency-stat {
-    background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
-    /* Red for Emergency */
+    background: var(--slate-mist-medium);
+    padding: var(--spacing-xs) var(--spacing-md);
+    border-radius: var(--radius-full);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .stat-badge strong {
-    font-size: 16px;
-    margin-right: 4px;
+    color: var(--pulse-teal);
+    margin-right: var(--spacing-xs);
 }
 
-/* Table container */
+.emergency-stat {
+    border-color: var(--warning-crimson);
+    background: rgba(244, 63, 94, 0.1);
+}
+
+.emergency-stat strong {
+    color: var(--warning-crimson);
+}
+
+
+/* Table Container */
 .table-container {
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    background: var(--slate-mist);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-xl);
     overflow: hidden;
+    box-shadow: var(--shadow-depth-lg);
+    margin-top: var(--spacing-lg);
 }
 
 .calls-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 14px;
+    text-align: left;
 }
 
 .calls-table thead {
-    background: linear-gradient(135deg, #2c3e50 0%, #4ca1af 100%);
-    /* Blue/Slate Gradient for Calls */
-    color: white;
+    background: rgba(255, 255, 255, 0.05);
 }
 
-.calls-table thead th {
-    padding: 16px 12px;
-    text-align: left;
+.calls-table th {
+    padding: var(--spacing-lg);
+    color: var(--text-secondary);
     font-weight: 600;
-    font-size: 13px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    font-size: var(--text-xs);
+    letter-spacing: 1px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
 }
 
 .calls-table tbody tr {
-    border-bottom: 1px solid #f0f0f0;
-    transition: background-color 0.2s ease;
+    transition: all var(--transition-fast);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.calls-table tbody tr:last-child {
+    border-bottom: none;
 }
 
 .calls-table tbody tr:hover {
-    background-color: #f8f9ff;
+    background: rgba(45, 212, 191, 0.05);
 }
 
 .calls-table td {
-    padding: 14px 12px;
+    padding: var(--spacing-lg);
+    color: var(--text-primary);
     vertical-align: middle;
 }
 
 /* Badges */
 .status-badge {
-    padding: 6px 12px;
-    border-radius: 15px;
-    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
 }
 
 .status-badge.completed {
-    background: #d1fae5;
-    color: #065f46;
+    background: rgba(45, 212, 191, 0.2);
+    color: var(--pulse-teal);
 }
 
-.status-badge.inprogress {
-    background: #dbeafe;
-    color: #1e40af;
-    border: 1px solid #93c5fd;
-    animation: pulse 2s infinite;
+.status-badge.missed {
+    background: rgba(244, 63, 94, 0.2);
+    color: var(--warning-crimson);
 }
 
-.status-badge.failed {
-    background: #fee2e2;
-    color: #991b1b;
+.status-badge.in-progress {
+    background: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
 }
 
 .intent-badge {
-    padding: 4px 10px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: 500;
-    background: #f3f4f6;
-    color: #4b5563;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    background: var(--slate-mist-medium);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.intent-badge.appointment {
-    background: #e0f2f1;
-    color: #00695c;
-}
-
-.intent-badge.emergency {
-    background: #fee2e2;
-    color: #b91c1c;
-    font-weight: bold;
-}
-
-.intent-badge.info {
-    background: #e0f7fa;
-    color: #006064;
-}
-
-/* Modal Styles */
+/* Modal */
 .call-modal {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1000;
-    backdrop-filter: blur(2px);
+    animation: fadeIn 0.2s ease-out;
 }
 
 .modal-content {
-    background: white;
-    padding: 30px;
+    background: var(--obsidian-night);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
-    width: 90%;
-    max-width: 600px;
+    padding: 20px;
+    width: 600px;
+    max-width: 90%;
     max-height: 80vh;
     overflow-y: auto;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-    animation: slideUp 0.3s ease;
-}
-
-@keyframes slideUp {
-    from {
-        transform: translateY(20px);
-        opacity: 0;
-    }
-
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-
-.transcript {
-    background: #f8fafc;
-    padding: 20px;
-    border-radius: 8px;
-    margin: 20px 0;
-    max-height: 400px;
-    overflow-y: auto;
-    border: 1px solid #e2e8f0;
-}
-
-.message {
-    margin-bottom: 12px;
-    line-height: 1.5;
-}
-
-.message strong {
-    display: block;
-    font-size: 0.8rem;
-    color: #64748b;
-    margin-bottom: 2px;
-}
-
-.message.user {
-    color: #0f172a;
-}
-
-.message.assistant {
-    color: #0f172a;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 .close-btn {
-    background: #64748b;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
     color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 6px;
+    padding: 5px 10px;
+    border-radius: 4px;
     cursor: pointer;
-    font-weight: 600;
-    float: right;
 }
 
-.close-btn:hover {
-    background: #475569;
+.transcript {
+    margin-top: 15px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 15px;
+}
+
+.message {
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+
+.message.assistant {
+    background: rgba(45, 212, 191, 0.1);
+    margin-right: 20px;
+    border-left: 3px solid var(--pulse-teal);
+}
+
+.message.user {
+    background: rgba(139, 92, 246, 0.1);
+    margin-left: 20px;
+    border-right: 3px solid var(--electric-violet);
+}
+
+
+/* Loading & No Results */
+.loading-container,
+.no-results {
+    text-align: center;
+    padding: var(--spacing-3xl);
+    color: var(--text-secondary);
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    border-top-color: var(--pulse-teal);
+    animation: spin 1s linear infinite;
+    margin: 0 auto var(--spacing-lg);
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-lg);
+    }
+
+    .table-container {
+        overflow-x: auto;
+    }
 }

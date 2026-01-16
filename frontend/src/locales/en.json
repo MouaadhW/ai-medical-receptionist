@@ -1,0 +1,14 @@
+{
+    "dashboard": "Dashboard",
+    "doctors": "Doctors",
+    "calls": "Calls & Transcripts",
+    "voice_test": "Voice Test",
+    "welcome": "Welcome, {{name}}",
+    "today_appointments": "Today's Appointments",
+    "active_patients": "Active Patients",
+    "emergencies": "Emergencies",
+    "total_appointments": "Total Appointments",
+    "marketing_leads": "Marketing Leads",
+    "recent_activity": "Recent Activity",
+    "admin_portal": "Admin Portal"
+}

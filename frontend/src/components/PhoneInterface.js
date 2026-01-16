@@ -14,6 +14,12 @@ const PhoneInterface = () => {
   const nextStartTime = useRef(0);
   const streamRef = useRef(null);
   const processorRef = useRef(null);
+  const statusRef = useRef('idle'); // Track status in ref for callbacks
+
+  // Sync statusRef with status state changes
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
 
   const appendTranscript = (role, text) => {
     setTranscript(prev => [...prev, { role, text, time: new Date().toLocaleTimeString() }]);
@@ -22,10 +28,8 @@ const PhoneInterface = () => {
   const playNextAudio = useCallback(() => {
     if (audioQueue.current.length === 0) {
       isPlaying.current = false;
-      if (status === 'speaking') {
-        // Slight delay before switching back to listening to avoid capturing echo
-        setTimeout(() => setStatus('listening'), 500);
-      }
+      // Slight delay before switching back to listening to avoid capturing echo
+      setTimeout(() => setStatus('listening'), 300);
       return;
     }
 
@@ -97,8 +101,9 @@ const PhoneInterface = () => {
           // Metadata for upcoming audio
           if (msg.text) appendTranscript('agent', msg.text);
         } else if (msg.type === 'transcript') {
-          // Real-time user transcript update (optional visual)
-          // console.log("User transcript:", msg.text);
+          // Add user transcript to the chat window
+          appendTranscript('user', msg.text);
+          console.log("User transcript:", msg.text);
         }
       } else if (event.data instanceof Blob) {
         // Binary Audio Data
@@ -147,11 +152,36 @@ const PhoneInterface = () => {
       // Buffer size 4096 gives ~250ms latency but is stable. 2048 or 1024 for lower latency.
       const processor = audioContext.current.createScriptProcessor(4096, 1, 1);
 
+      let chunkCount = 0; // Debug counter
+
       processor.onaudioprocess = (e) => {
-        if (status !== 'listening' && status !== 'speaking') return; // Don't record if idle
-        if (isPlaying.current) return; // Half-duplex: Don't record while agent speaks (simple echo cancellation)
+        // Use statusRef to get current status (avoid closure issues)
+        const currentStatus = statusRef.current;
+
+        // Debug logging (throttle)
+        chunkCount++;
+        if (chunkCount % 50 === 0) {
+          console.log(`[AudioProc] Status: ${currentStatus}, isPlaying: ${isPlaying.current}`);
+        }
+
+        // Only record when connected (not idle/error/connecting)
+        if (currentStatus === 'idle' || currentStatus === 'error' || currentStatus === 'connecting') return;
+
+        // Don't record while agent is actively playing audio (half-duplex - simple echo cancellation)
+        if (isPlaying.current) return;
 
         const inputData = e.inputBuffer.getChannelData(0);
+
+        // Calculate RMS for debug
+        let sum = 0;
+        for (let i = 0; i < inputData.length; i++) {
+          sum += inputData[i] * inputData[i];
+        }
+        const rms = Math.sqrt(sum / inputData.length);
+
+        if (chunkCount % 50 === 0) {
+          console.log(`[AudioProc] Input RMS: ${rms.toFixed(4)}`);
+        }
         const inputSampleRate = audioContext.current.sampleRate;
         const targetSampleRate = 16000;
 
@@ -171,6 +201,9 @@ const PhoneInterface = () => {
 
         if (ws.current && ws.current.readyState === WebSocket.OPEN) {
           ws.current.send(pcmData.buffer);
+          if (chunkCount % 50 === 0) console.log("[WS] Sent audio buffer");
+        } else {
+          if (chunkCount % 50 === 0) console.warn(`[WS] Not open. State: ${ws.current ? ws.current.readyState : 'null'}`);
         }
       };
 
@@ -207,8 +240,8 @@ const PhoneInterface = () => {
           <div className={`status-badge ${status}`}>
             {status === 'idle' && 'Ready to Call'}
             {status === 'connecting' && 'Connecting...'}
-            {status === 'listening' && '🟢 Listening...'}
-            {status === 'speaking' && '🔊 Agent Speaking'}
+            {status === 'listening' && '🎤 AI Listening...'}
+            {status === 'speaking' && '🔊 AI Speaking'}
             {status === 'error' && '❌ Error'}
           </div>
         </div>

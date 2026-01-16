@@ -13,8 +13,12 @@ passlib[bcrypt]==1.7.4
 bcrypt==3.2.2
 pydantic-settings==2.1.0
 faster-whisper>=0.10.0
-webrtcvad==2.0.10
+webrtcvad-wheels>=2.0.10
 piper-tts>=1.2.0
 numpy<2.0.0
 soundfile>=0.12.1
 aiohttp
+langchain-community>=0.0.10
+langchain-core>=0.1.0
+cryptography>=41.0.0
+pyotp>=2.9.0

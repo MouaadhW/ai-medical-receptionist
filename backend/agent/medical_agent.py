@@ -451,9 +451,11 @@ class MedicalReceptionistAgent:
                 '  "current_step": "The current step in the triage process (1-8) or 0 if general chat.",'
                 '  "is_emergency": false,',
                 '  "missing_info": ["severity", "location"] (list of info you still need),'
-                '  "intent": "appointment|medical|emergency|general"'
+                '  "intent": "appointment|medical|emergency|general",'
+                '  "language": "en|fr" (Detect the user\'s language. Respond in the SAME language.)'
                 "}",
                 "Always maintain HIPAA compliance.",
+                "Process: 1. Detect language (English or French). 2. Generate spoken_response IN THAT LANGUAGE. 3. Set 'language' field.",
                 self.knowledgebase.getcontext()
             ]
             

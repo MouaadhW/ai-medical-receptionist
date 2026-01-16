@@ -52,7 +52,7 @@ cd ai-medical-receptionist
 #### 2. Configure Environment (Optional)
 The project comes with a default configuration. If you want to customize settings (like clinic name):
 *   Copy `.env.example` to `.env` (or just use the defaults provided in docker-compose).
-*   The default login for the admin panel is `admin` / `password`.
+*   The default login for the admin panel is `admin` / `admin123`.
 
 #### 3. Build & Run the System
 Run the following command to build the containers and start the application:
@@ -85,7 +85,7 @@ The revamped **Admin Dashboard** provides a holistic view of the clinic:
 - **Charts**: Visual distribution of appointment types and urgencies.
 - **Quick Actions**: Easy navigation to manage doctors or patients.
 
-### 2. Managing Doctors (New!)
+### 2. Managing Doctors 
 Navigate to the **Doctors** page to:
 - **Add New Doctors:** Create profiles with specialties (Cardiology, Pediatrics, etc.).
 - **View Roster:** See all registered medical staff in a clean, searchable table.
@@ -167,5 +167,5 @@ This AI system is for **educational and administrative assistance** only.
 
 ---
 
-**Built with ❤️ for Healthcare Innovation**
+**Built for Healthcare Innovation**
 *v2.1 - Enhanced UI & Doctor Management*
