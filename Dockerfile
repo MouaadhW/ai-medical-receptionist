@@ -24,10 +24,14 @@ WORKDIR /app
 
 # Copy requirement first for caching
 COPY backend/requirements.txt requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt && \
+    rm -rf /root/.cache/pip
 
-# Copy the rest of the app
-COPY . .
+# Copy only necessary directories (avoids frontend/ and other garbage)
+WORKDIR /app
+COPY backend /app/backend
+COPY start.sh /app/start.sh
+COPY .env /app/.env
 
 # Ensure start script is executable and has LF endings
 RUN sed -i 's/\r$//' start.sh && chmod +x start.sh
