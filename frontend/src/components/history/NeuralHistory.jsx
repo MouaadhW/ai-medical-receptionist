@@ -26,38 +26,35 @@ const NeuralHistory = () => {
     });
 
     useEffect(() => {
-        fetchMedicalHistory();
-    }, []);
+        const fetchHistory = async () => {
+            try {
+                // Fetch Filterable Timeline
+                const responseV1 = await fetch(`${API_BASE_URL}/history/patient/${patientId}`);
+                const dataV1 = await responseV1.json();
+                setEvents(dataV1.events || []);
 
-    const fetchMedicalHistory = async () => {
-        try {
-            const patientId = 1; // TODO: Get from auth context
+                // Fetch Anatomical Map
+                const responseV2 = await fetch(`${API_BASE_URL}/history/anatomical/${patientId}`);
+                const dataV2 = await responseV2.json();
+                setAnatomicalData(dataV2.anatomical_map || {});
 
-            // Fetch Filterable Timeline
-            const responseV1 = await fetch(`http://localhost:8000/api/history/patient/${patientId}`);
-            const dataV1 = await responseV1.json();
-            setEvents(dataV1.events || []);
+            } catch (error) {
+                console.error('Error fetching medical history:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        if (patientId) fetchHistory();
+    }, [patientId]);
 
-            // Fetch Anatomical Map
-            const responseV2 = await fetch(`http://localhost:8000/api/history/anatomical/${patientId}`);
-            const dataV2 = await responseV2.json();
-            setAnatomicalData(dataV2.anatomical_map || {});
-
-        } catch (error) {
-            console.error('Error fetching medical history:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleSubmitEvent = async (e) => {
+    const addEvent = async (e) => {
         e.preventDefault();
         try {
-            const response = await fetch('http://localhost:8000/api/history/events/create', {
+            const response = await fetch(`${API_BASE_URL}/history/events/create`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    patient_id: 1,
+                    patient_id: patientId,
                     ...formData
                 })
             });

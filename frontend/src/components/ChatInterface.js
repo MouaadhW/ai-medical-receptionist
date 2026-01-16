@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './ChatInterface.css';
+import { WS_BASE_URL } from '../config';
 
 function ChatInterface() {
     const [messages, setMessages] = useState([]);
-    const [inputText, setInputText] = useState('');
+    const [input, setInput] = useState('');
     const [isConnected, setIsConnected] = useState(false);
     const [isWaitingResponse, setIsWaitingResponse] = useState(false);
-    const wsRef = useRef(null);
+    const ws = useRef(null);
     const messagesEndRef = useRef(null);
 
     const scrollToBottom = () => {

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import GlassCard from '../shared/GlassCard';
 import './billing.css';
+import { API_BASE_URL } from '../../config';
 
-const PulseLedger = () => {
+const PulseLedger = ({ patientId }) => {
     const [bills, setBills] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedBill, setSelectedBill] = useState(null);

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import AdminDoctorManager from './AdminDoctorManager';
-import './Doctors.css';
+import './Doctors.css'; // Assuming you have a CSS file for this component
+import { API_BASE_URL } from '../config';
 
-const APIURL = process.env.REACTAPPAPIURL || 'http://localhost:8000/api';
+const APIURL = API_BASE_URL;
 
 const Doctors = () => {
     const [doctors, setDoctors] = useState([]);

@@ -1,10 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './Dashboard.css';
-
-const APIURL = process.env.REACTAPPAPIURL || 'http://localhost:8000/api';
+import { API_BASE_URL } from '../config';
 
 const AdminDoctorManager = (props) => {
+    const [doctors, setDoctors] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    const APIURL = API_BASE_URL;
+
     const [formData, setFormData] = useState({
         name: '',
         username: '',

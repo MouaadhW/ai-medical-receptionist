@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './AppointmentHistory.css';
-
-const API_URL = 'http://localhost:8000/api';
+import { API_BASE_URL } from '../config';
 
 const AppointmentHistory = () => {
     const [appointments, setAppointments] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
+    const [error, setError] = useState(null);
+
+    const API_URL = API_BASE_URL;
 
     useEffect(() => {
         fetchAppointments();

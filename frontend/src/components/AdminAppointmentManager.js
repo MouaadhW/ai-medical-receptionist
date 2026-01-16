@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './AdminAppointmentManager.css';
+import { API_BASE_URL } from '../config';
 
-const API_URL = 'http://localhost:8000/api';
+const API_URL = API_BASE_URL;
 
 const AdminAppointmentManager = () => {
     const [appointments, setAppointments] = useState([]);

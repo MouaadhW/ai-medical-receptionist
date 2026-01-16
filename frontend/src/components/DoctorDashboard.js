@@ -1,35 +1,37 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import './Dashboard.css';
-import './Doctors.css'; // Import the new styles
+import React, { useState, useEffect, useContext } from 'react';
+import axios from 'axios';
+import { AuthContext } from '../context/AuthContext';
+import './Dashboard.css'; // Reusing dashboard styles
+import { API_BASE_URL } from '../config';
 
 const DoctorDashboard = () => {
-    const { user } = useAuth();
+    const { user } = useContext(AuthContext);
     const [schedule, setSchedule] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetchSchedule();
-    }, []);
-
-    const fetchSchedule = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8000/api/doctor/my-schedule', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
+        const fetchSchedule = async () => {
+            try {
+                // Fetch doctor's schedule
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_BASE_URL}/doctor/my-schedule`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    setSchedule(data);
                 }
-            });
-            if (response.ok) {
-                const data = await response.json();
-                setSchedule(data);
+            } catch (error) {
+                console.error('Error fetching schedule:', error);
+            } finally {
+                setLoading(false);
             }
-        } catch (error) {
-            console.error('Error fetching schedule:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+        };
+
+        fetchSchedule();
+    }, [user]);
 
     // Filter appointments
     const today = new Date().toISOString().split('T')[0];

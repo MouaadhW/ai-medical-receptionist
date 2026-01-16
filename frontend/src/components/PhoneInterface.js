@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import './PhoneInterface.css';
+import { WS_BASE_URL } from '../config';
 
 const PhoneInterface = () => {
   const [status, setStatus] = useState('idle'); // idle, connecting, listening, speaking, emergency
@@ -15,6 +16,9 @@ const PhoneInterface = () => {
   const streamRef = useRef(null);
   const processorRef = useRef(null);
   const statusRef = useRef('idle'); // Track status in ref for callbacks
+
+  // To check if we need to authenticate via token
+  const token = localStorage.getItem('token');
 
   // Sync statusRef with status state changes
   useEffect(() => {
@@ -81,10 +85,14 @@ const PhoneInterface = () => {
     }
   }, [playNextAudio]);
 
+  // WebSocket Connection
   const connectWebSocket = useCallback(() => {
+    if (ws.current) return;
+
     setStatus('connecting');
-    // Pointing to localhost:8003 where voice_server.py is running
-    const socket = new WebSocket('ws://localhost:8003/ws');
+    // Use centralized configuration
+    const wsUrl = token ? `${WS_BASE_URL}?token=${token}` : WS_BASE_URL;
+    const socket = new WebSocket(wsUrl);
 
     socket.onopen = () => {
       console.log('✅ Connected to Voice Server');
