@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     
     # LLM Configuration
     LLMPROVIDER: str = "ollama"
-    LLMMODEL: str = "llama3.1:8b"  # Optimal for medical conversations
+    LLMMODEL: str = "llama3.2:3b"  # Smaller, faster deployment
     LLMTEMPERATURE: float = 0.7
     LLMMAXTOKENS: int = 150
     

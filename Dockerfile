@@ -24,7 +24,8 @@ WORKDIR /app
 
 # Copy requirement first for caching
 COPY backend/requirements.txt requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt && \
+RUN pip install uv && \
+    uv pip install --system --no-cache-dir -r requirements.txt && \
     rm -rf /root/.cache/pip
 
 # Copy only necessary directories (avoids frontend/ and other garbage)
