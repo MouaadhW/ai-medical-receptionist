@@ -1,29 +1,35 @@
-FROM ubuntu:22.04
+FROM python:3.11-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
 
-# Install system deps
-# Added python-is-python3 to ensure 'python' command works
+# Install system dependencies
+# ffmpeg, libsndfile1 for audio
+# curl for ollama install
+# zstd for ollama install (sometimes needed)
+# build-essential for compiling some python extensions
 RUN apt-get update && apt-get install -y \
     curl \
     ca-certificates \
-    python3 \
-    python3-pip \
-    python-is-python3 \
-    zstd \
     ffmpeg \
     libsndfile1 \
+    zstd \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
-
-# Ensure 'pip' command exists (aliased to pip3)
-RUN ln -sf /usr/bin/pip3 /usr/bin/pip
 
 # Install Ollama
 RUN curl -fsSL https://ollama.com/install.sh | sh
 
 WORKDIR /app
+
+# Copy requirement first for caching
+COPY backend/requirements.txt requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the rest of the app
 COPY . .
 
-RUN chmod +x start.sh
+# Ensure start script is executable and has LF endings
+RUN sed -i 's/\r$//' start.sh && chmod +x start.sh
 
 CMD ["bash", "start.sh"]

@@ -1,0 +1,22 @@
+# Git
+.git
+.gitignore
+
+# Frontend (Not needed for backend image)
+frontend/node_modules
+frontend/build
+frontend/
+
+# Backend Data & Models
+backend/models/
+backend/mimicdata/
+mimicdata/
+backend/venv/
+venv/
+*.db
+*.sqlite3
+__pycache__
+*.pyc
+
+# Local Config
+.env
